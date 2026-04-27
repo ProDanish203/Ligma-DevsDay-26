@@ -7,6 +7,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { QueryParams } from '../common/types/type';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
+import { UpdateProjectMemberDto } from './dto/update-project-member.dto';
 import { ProjectService } from './project.service';
 
 @Controller('project')
@@ -28,17 +29,6 @@ export class ProjectController {
 
   @Roles(...Object.values(UserRole))
   @ApiProperty({
-    title: 'Update Project',
-    description: 'Update project name and description',
-    type: UpdateProjectDto,
-  })
-  @Patch(':projectId')
-  async updateProject(@CurrentUser() user: User, @Param('projectId') projectId: string, @Body() dto: UpdateProjectDto) {
-    return this.projectService.updateProject(user, projectId, dto);
-  }
-
-  @Roles(...Object.values(UserRole))
-  @ApiProperty({
     title: 'Get All Projects',
     description: 'Retrieve all projects with pagination and query params',
   })
@@ -50,6 +40,43 @@ export class ProjectController {
   @Get('all')
   async getAllProjects(@CurrentUser() user: User, @Query() query: QueryParams) {
     return this.projectService.getAllProjects(user, query);
+  }
+
+  @Roles(...Object.values(UserRole))
+  @ApiProperty({
+    title: 'Get Project Members',
+    description: 'List project owner and members with access levels',
+  })
+  @Get(':projectId/members')
+  async getProjectMembers(@CurrentUser() user: User, @Param('projectId') projectId: string) {
+    return this.projectService.getProjectMembers(user, projectId);
+  }
+
+  @Roles(...Object.values(UserRole))
+  @ApiProperty({
+    title: 'Update Member Access Level',
+    description: 'Update a collaborator role (owner or lead rules apply)',
+    type: UpdateProjectMemberDto,
+  })
+  @Patch(':projectId/members/:userAccessId')
+  async updateProjectMemberAccess(
+    @CurrentUser() user: User,
+    @Param('projectId') projectId: string,
+    @Param('userAccessId') userAccessId: string,
+    @Body() dto: UpdateProjectMemberDto,
+  ) {
+    return this.projectService.updateProjectMemberAccess(user, projectId, userAccessId, dto);
+  }
+
+  @Roles(...Object.values(UserRole))
+  @ApiProperty({
+    title: 'Update Project',
+    description: 'Update project name and description',
+    type: UpdateProjectDto,
+  })
+  @Patch(':projectId')
+  async updateProject(@CurrentUser() user: User, @Param('projectId') projectId: string, @Body() dto: UpdateProjectDto) {
+    return this.projectService.updateProject(user, projectId, dto);
   }
 
   @Roles(...Object.values(UserRole))

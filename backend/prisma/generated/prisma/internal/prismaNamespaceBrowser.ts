@@ -98,6 +98,7 @@ export const ProjectInvitationScalarFieldEnum = {
   id: 'id',
   email: 'email',
   status: 'status',
+  accessLevel: 'accessLevel',
   projectId: 'projectId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',

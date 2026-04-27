@@ -1,7 +1,11 @@
 import { AxiosError } from 'axios';
 import api from './middleware';
 import { type ApiListQuerySchema } from '@/schema/common.schema';
-import { type CreateProjectSchema, type UpdateProjectSchema } from '@/schema/project.schema';
+import {
+  type CreateProjectSchema,
+  type UpdateProjectSchema,
+  type UpdateProjectMemberSchema,
+} from '@/schema/project.schema';
 
 export const createProject = async (payload: CreateProjectSchema) => {
   try {
@@ -75,5 +79,41 @@ export const deleteProject = async (projectId: string) => {
       return { success: false, response: error.response?.data?.message || 'Failed to delete project' };
     }
     return { success: false, response: 'Failed to delete project' };
+  }
+};
+
+export const getProjectMembers = async (projectId: string) => {
+  try {
+    const { data } = await api.get(`/project/${projectId}/members`, { withCredentials: true });
+    if (data?.success) {
+      return { success: true, response: data.data };
+    }
+    return { success: false, response: data?.message || 'Failed to load project members' };
+  } catch (error) {
+    if (error instanceof AxiosError) {
+      return { success: false, response: error.response?.data?.message || 'Failed to load project members' };
+    }
+    return { success: false, response: 'Failed to load project members' };
+  }
+};
+
+export const updateProjectMemberAccess = async (
+  projectId: string,
+  userAccessId: string,
+  payload: UpdateProjectMemberSchema,
+) => {
+  try {
+    const { data } = await api.patch(`/project/${projectId}/members/${userAccessId}`, payload, {
+      withCredentials: true,
+    });
+    if (data?.success) {
+      return { success: true, response: data.data };
+    }
+    return { success: false, response: data?.message || 'Failed to update member role' };
+  } catch (error) {
+    if (error instanceof AxiosError) {
+      return { success: false, response: error.response?.data?.message || 'Failed to update member role' };
+    }
+    return { success: false, response: 'Failed to update member role' };
   }
 };

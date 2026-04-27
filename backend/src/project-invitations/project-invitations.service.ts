@@ -16,6 +16,26 @@ export class ProjectInvitationsService {
     private readonly logsService: LogsService,
   ) {}
 
+  private async userCanManageProjectInvitations(userId: string, projectId: string): Promise<boolean> {
+    const project = await this.prismaService.project.findFirst({
+      where: { id: projectId, deletedAt: null },
+      select: { userId: true },
+    });
+    if (!project) return false;
+    if (project.userId === userId) return true;
+    const lead = await this.prismaService.userAccess.findFirst({
+      where: {
+        userId,
+        entityId: projectId,
+        entityType: UserAccessType.PROJECT,
+        deletedAt: null,
+        accessLevel: UserAccessLevel.LEAD,
+      },
+      select: { id: true },
+    });
+    return !!lead;
+  }
+
   async getCurrentUserInvitations(
     user: User,
     query?: QueryParams,
@@ -87,16 +107,9 @@ export class ProjectInvitationsService {
     try {
       const { page = 1, limit = 20, search = '', filter = '', sort = '' } = query || {};
 
-      const project = await this.prismaService.project.findFirst({
-        where: {
-          id: projectId,
-          userId: user.id,
-          deletedAt: null,
-        },
-        select: { id: true },
-      });
-
-      if (!project) throw throwError('Project not found', HttpStatus.NOT_FOUND);
+      if (!(await this.userCanManageProjectInvitations(user.id, projectId))) {
+        throw throwError('Project not found', HttpStatus.NOT_FOUND);
+      }
 
       const where: Prisma.ProjectInvitationWhereInput = {
         projectId,
@@ -152,16 +165,9 @@ export class ProjectInvitationsService {
 
   async inviteUser(user: User, dto: InviteUserDto): Promise<ApiResponse<ProjectInvitationSelect>> {
     try {
-      const project = await this.prismaService.project.findFirst({
-        where: {
-          id: dto.projectId,
-          userId: user.id,
-          deletedAt: null,
-        },
-        select: { id: true },
-      });
-
-      if (!project) throw throwError('Project not found', HttpStatus.NOT_FOUND);
+      if (!(await this.userCanManageProjectInvitations(user.id, dto.projectId))) {
+        throw throwError('Project not found', HttpStatus.NOT_FOUND);
+      }
       if (dto.email === user.email) throw throwError('You cannot invite yourself', HttpStatus.BAD_REQUEST);
 
       const invitedUser = await this.prismaService.user.findFirst({
@@ -198,60 +204,14 @@ export class ProjectInvitationsService {
 
       if (existingAccess) throw throwError('User already has access to this project', HttpStatus.BAD_REQUEST);
 
-      const previousAccess = await this.prismaService.userAccess.findFirst({
-        where: {
-          userId: invitedUser.id,
-          entityId: dto.projectId,
-          entityType: UserAccessType.PROJECT,
-        },
-        select: { accessLevel: true, deletedAt: true },
-      });
-
       const invitation = await this.prismaService.projectInvitation.create({
         data: {
           email: dto.email,
           projectId: dto.projectId,
+          accessLevel: dto.accessLevel,
         },
         select: projectInvitationSelect,
       });
-
-      await this.prismaService.userAccess.upsert({
-        where: {
-          userId_entityType_entityId: {
-            userId: invitedUser.id,
-            entityType: UserAccessType.PROJECT,
-            entityId: dto.projectId,
-          },
-        },
-        create: {
-          userId: invitedUser.id,
-          entityType: UserAccessType.PROJECT,
-          entityId: dto.projectId,
-          accessLevel: dto.accessLevel,
-          deletedAt: null,
-        },
-        update: {
-          accessLevel: dto.accessLevel,
-          deletedAt: null,
-        },
-      });
-
-      if (previousAccess && previousAccess.accessLevel !== dto.accessLevel) {
-        await this.logsService.createLog({
-          action: 'USER_ACCESS_LEVEL_UPDATED',
-          message: `Access level for ${dto.email} was updated`,
-          entityType: LogEntityType.PROJECT,
-          entityId: dto.projectId,
-          actorUserId: user.id,
-          targetUserId: invitedUser.id,
-          metadata: {
-            projectId: dto.projectId,
-            email: dto.email,
-            previousAccessLevel: previousAccess.accessLevel,
-            updatedAccessLevel: dto.accessLevel,
-          },
-        });
-      }
 
       await this.logsService.createLog({
         action: 'INVITATION_SENT',
@@ -300,6 +260,7 @@ export class ProjectInvitationsService {
           id: true,
           projectId: true,
           email: true,
+          accessLevel: true,
         },
       });
 
@@ -318,10 +279,11 @@ export class ProjectInvitationsService {
             userId: user.id,
             entityType: UserAccessType.PROJECT,
             entityId: invitation.projectId,
-            accessLevel: UserAccessLevel.VIEWER,
+            accessLevel: invitation.accessLevel,
             deletedAt: null,
           },
           update: {
+            accessLevel: invitation.accessLevel,
             deletedAt: null,
           },
         });
@@ -392,10 +354,7 @@ export class ProjectInvitationsService {
           id: invitationId,
           status: InvitationStatus.PENDING,
           deletedAt: null,
-          project: {
-            userId: user.id,
-            deletedAt: null,
-          },
+          project: { deletedAt: null },
         },
         select: {
           id: true,
@@ -405,6 +364,10 @@ export class ProjectInvitationsService {
       });
 
       if (!invitation) throw throwError('Pending invitation not found', HttpStatus.NOT_FOUND);
+
+      if (!(await this.userCanManageProjectInvitations(user.id, invitation.projectId))) {
+        throw throwError('Pending invitation not found', HttpStatus.NOT_FOUND);
+      }
 
       await this.prismaService.projectInvitation.delete({
         where: { id: invitationId },

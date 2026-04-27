@@ -19,11 +19,6 @@ export function Topnav() {
       <p className="text-sm font-semibold text-gray-500">{title}</p>
 
       <div className="flex items-center gap-2">
-        <button className="flex h-8 items-center gap-1.5 rounded-lg bg-linear-to-r from-brand-primary to-brand-secondary px-3 text-xs font-semibold text-white shadow-sm shadow-brand-primary/20 transition-opacity hover:opacity-90">
-          <Plus className="size-3.5" />
-          New Project
-        </button>
-
         <button className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-600">
           <Bell className="size-4" />
         </button>

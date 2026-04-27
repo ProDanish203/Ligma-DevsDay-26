@@ -216,6 +216,13 @@ export type EnumInvitationStatusFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumInvitationStatusFilter<$PrismaModel> | $Enums.InvitationStatus
 }
 
+export type EnumUserAccessLevelFilter<$PrismaModel = never> = {
+  equals?: $Enums.UserAccessLevel | Prisma.EnumUserAccessLevelFieldRefInput<$PrismaModel>
+  in?: $Enums.UserAccessLevel[] | Prisma.ListEnumUserAccessLevelFieldRefInput<$PrismaModel>
+  notIn?: $Enums.UserAccessLevel[] | Prisma.ListEnumUserAccessLevelFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumUserAccessLevelFilter<$PrismaModel> | $Enums.UserAccessLevel
+}
+
 export type EnumInvitationStatusWithAggregatesFilter<$PrismaModel = never> = {
   equals?: $Enums.InvitationStatus | Prisma.EnumInvitationStatusFieldRefInput<$PrismaModel>
   in?: $Enums.InvitationStatus[] | Prisma.ListEnumInvitationStatusFieldRefInput<$PrismaModel>
@@ -224,6 +231,16 @@ export type EnumInvitationStatusWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumInvitationStatusFilter<$PrismaModel>
   _max?: Prisma.NestedEnumInvitationStatusFilter<$PrismaModel>
+}
+
+export type EnumUserAccessLevelWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.UserAccessLevel | Prisma.EnumUserAccessLevelFieldRefInput<$PrismaModel>
+  in?: $Enums.UserAccessLevel[] | Prisma.ListEnumUserAccessLevelFieldRefInput<$PrismaModel>
+  notIn?: $Enums.UserAccessLevel[] | Prisma.ListEnumUserAccessLevelFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumUserAccessLevelWithAggregatesFilter<$PrismaModel> | $Enums.UserAccessLevel
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumUserAccessLevelFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumUserAccessLevelFilter<$PrismaModel>
 }
 
 export type EnumProjectVisibilityFilter<$PrismaModel = never> = {
@@ -250,13 +267,6 @@ export type EnumUserAccessTypeFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumUserAccessTypeFilter<$PrismaModel> | $Enums.UserAccessType
 }
 
-export type EnumUserAccessLevelFilter<$PrismaModel = never> = {
-  equals?: $Enums.UserAccessLevel | Prisma.EnumUserAccessLevelFieldRefInput<$PrismaModel>
-  in?: $Enums.UserAccessLevel[] | Prisma.ListEnumUserAccessLevelFieldRefInput<$PrismaModel>
-  notIn?: $Enums.UserAccessLevel[] | Prisma.ListEnumUserAccessLevelFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumUserAccessLevelFilter<$PrismaModel> | $Enums.UserAccessLevel
-}
-
 export type EnumUserAccessTypeWithAggregatesFilter<$PrismaModel = never> = {
   equals?: $Enums.UserAccessType | Prisma.EnumUserAccessTypeFieldRefInput<$PrismaModel>
   in?: $Enums.UserAccessType[] | Prisma.ListEnumUserAccessTypeFieldRefInput<$PrismaModel>
@@ -265,16 +275,6 @@ export type EnumUserAccessTypeWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumUserAccessTypeFilter<$PrismaModel>
   _max?: Prisma.NestedEnumUserAccessTypeFilter<$PrismaModel>
-}
-
-export type EnumUserAccessLevelWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.UserAccessLevel | Prisma.EnumUserAccessLevelFieldRefInput<$PrismaModel>
-  in?: $Enums.UserAccessLevel[] | Prisma.ListEnumUserAccessLevelFieldRefInput<$PrismaModel>
-  notIn?: $Enums.UserAccessLevel[] | Prisma.ListEnumUserAccessLevelFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumUserAccessLevelWithAggregatesFilter<$PrismaModel> | $Enums.UserAccessLevel
-  _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumUserAccessLevelFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumUserAccessLevelFilter<$PrismaModel>
 }
 
 export type EnumLogLevelFilter<$PrismaModel = never> = {
@@ -602,6 +602,13 @@ export type NestedEnumInvitationStatusFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumInvitationStatusFilter<$PrismaModel> | $Enums.InvitationStatus
 }
 
+export type NestedEnumUserAccessLevelFilter<$PrismaModel = never> = {
+  equals?: $Enums.UserAccessLevel | Prisma.EnumUserAccessLevelFieldRefInput<$PrismaModel>
+  in?: $Enums.UserAccessLevel[] | Prisma.ListEnumUserAccessLevelFieldRefInput<$PrismaModel>
+  notIn?: $Enums.UserAccessLevel[] | Prisma.ListEnumUserAccessLevelFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumUserAccessLevelFilter<$PrismaModel> | $Enums.UserAccessLevel
+}
+
 export type NestedEnumInvitationStatusWithAggregatesFilter<$PrismaModel = never> = {
   equals?: $Enums.InvitationStatus | Prisma.EnumInvitationStatusFieldRefInput<$PrismaModel>
   in?: $Enums.InvitationStatus[] | Prisma.ListEnumInvitationStatusFieldRefInput<$PrismaModel>
@@ -610,6 +617,16 @@ export type NestedEnumInvitationStatusWithAggregatesFilter<$PrismaModel = never>
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumInvitationStatusFilter<$PrismaModel>
   _max?: Prisma.NestedEnumInvitationStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumUserAccessLevelWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.UserAccessLevel | Prisma.EnumUserAccessLevelFieldRefInput<$PrismaModel>
+  in?: $Enums.UserAccessLevel[] | Prisma.ListEnumUserAccessLevelFieldRefInput<$PrismaModel>
+  notIn?: $Enums.UserAccessLevel[] | Prisma.ListEnumUserAccessLevelFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumUserAccessLevelWithAggregatesFilter<$PrismaModel> | $Enums.UserAccessLevel
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumUserAccessLevelFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumUserAccessLevelFilter<$PrismaModel>
 }
 
 export type NestedEnumProjectVisibilityFilter<$PrismaModel = never> = {
@@ -636,13 +653,6 @@ export type NestedEnumUserAccessTypeFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumUserAccessTypeFilter<$PrismaModel> | $Enums.UserAccessType
 }
 
-export type NestedEnumUserAccessLevelFilter<$PrismaModel = never> = {
-  equals?: $Enums.UserAccessLevel | Prisma.EnumUserAccessLevelFieldRefInput<$PrismaModel>
-  in?: $Enums.UserAccessLevel[] | Prisma.ListEnumUserAccessLevelFieldRefInput<$PrismaModel>
-  notIn?: $Enums.UserAccessLevel[] | Prisma.ListEnumUserAccessLevelFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumUserAccessLevelFilter<$PrismaModel> | $Enums.UserAccessLevel
-}
-
 export type NestedEnumUserAccessTypeWithAggregatesFilter<$PrismaModel = never> = {
   equals?: $Enums.UserAccessType | Prisma.EnumUserAccessTypeFieldRefInput<$PrismaModel>
   in?: $Enums.UserAccessType[] | Prisma.ListEnumUserAccessTypeFieldRefInput<$PrismaModel>
@@ -651,16 +661,6 @@ export type NestedEnumUserAccessTypeWithAggregatesFilter<$PrismaModel = never> =
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumUserAccessTypeFilter<$PrismaModel>
   _max?: Prisma.NestedEnumUserAccessTypeFilter<$PrismaModel>
-}
-
-export type NestedEnumUserAccessLevelWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.UserAccessLevel | Prisma.EnumUserAccessLevelFieldRefInput<$PrismaModel>
-  in?: $Enums.UserAccessLevel[] | Prisma.ListEnumUserAccessLevelFieldRefInput<$PrismaModel>
-  notIn?: $Enums.UserAccessLevel[] | Prisma.ListEnumUserAccessLevelFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumUserAccessLevelWithAggregatesFilter<$PrismaModel> | $Enums.UserAccessLevel
-  _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumUserAccessLevelFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumUserAccessLevelFilter<$PrismaModel>
 }
 
 export type NestedEnumLogLevelFilter<$PrismaModel = never> = {
