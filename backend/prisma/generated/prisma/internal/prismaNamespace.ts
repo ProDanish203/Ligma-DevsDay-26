@@ -841,6 +841,7 @@ export const ProjectInvitationScalarFieldEnum = {
   id: 'id',
   email: 'email',
   status: 'status',
+  accessLevel: 'accessLevel',
   projectId: 'projectId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
@@ -1020,6 +1021,20 @@ export type ListEnumInvitationStatusFieldRefInput<$PrismaModel> = FieldRefInputT
 
 
 /**
+ * Reference to a field of type 'UserAccessLevel'
+ */
+export type EnumUserAccessLevelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'UserAccessLevel'>
+    
+
+
+/**
+ * Reference to a field of type 'UserAccessLevel[]'
+ */
+export type ListEnumUserAccessLevelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'UserAccessLevel[]'>
+    
+
+
+/**
  * Reference to a field of type 'ProjectVisibility'
  */
 export type EnumProjectVisibilityFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ProjectVisibility'>
@@ -1044,20 +1059,6 @@ export type EnumUserAccessTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$P
  * Reference to a field of type 'UserAccessType[]'
  */
 export type ListEnumUserAccessTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'UserAccessType[]'>
-    
-
-
-/**
- * Reference to a field of type 'UserAccessLevel'
- */
-export type EnumUserAccessLevelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'UserAccessLevel'>
-    
-
-
-/**
- * Reference to a field of type 'UserAccessLevel[]'
- */
-export type ListEnumUserAccessLevelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'UserAccessLevel[]'>
     
 
 

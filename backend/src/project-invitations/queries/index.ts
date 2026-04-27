@@ -4,6 +4,7 @@ export const projectInvitationSelect = {
   id: true,
   email: true,
   status: true,
+  accessLevel: true,
   projectId: true,
   createdAt: true,
   updatedAt: true,

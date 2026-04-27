@@ -32,6 +32,7 @@ const projectInvitationSchema = z.object({
   id: z.string().uuid(),
   email: z.string().email(),
   status: z.nativeEnum(InvitationStatus),
+  accessLevel: z.nativeEnum(UserAccessLevel),
   projectId: z.string().uuid(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),

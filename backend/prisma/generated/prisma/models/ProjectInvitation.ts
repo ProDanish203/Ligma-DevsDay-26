@@ -28,6 +28,7 @@ export type ProjectInvitationMinAggregateOutputType = {
   id: string | null
   email: string | null
   status: $Enums.InvitationStatus | null
+  accessLevel: $Enums.UserAccessLevel | null
   projectId: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -38,6 +39,7 @@ export type ProjectInvitationMaxAggregateOutputType = {
   id: string | null
   email: string | null
   status: $Enums.InvitationStatus | null
+  accessLevel: $Enums.UserAccessLevel | null
   projectId: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -48,6 +50,7 @@ export type ProjectInvitationCountAggregateOutputType = {
   id: number
   email: number
   status: number
+  accessLevel: number
   projectId: number
   createdAt: number
   updatedAt: number
@@ -60,6 +63,7 @@ export type ProjectInvitationMinAggregateInputType = {
   id?: true
   email?: true
   status?: true
+  accessLevel?: true
   projectId?: true
   createdAt?: true
   updatedAt?: true
@@ -70,6 +74,7 @@ export type ProjectInvitationMaxAggregateInputType = {
   id?: true
   email?: true
   status?: true
+  accessLevel?: true
   projectId?: true
   createdAt?: true
   updatedAt?: true
@@ -80,6 +85,7 @@ export type ProjectInvitationCountAggregateInputType = {
   id?: true
   email?: true
   status?: true
+  accessLevel?: true
   projectId?: true
   createdAt?: true
   updatedAt?: true
@@ -163,6 +169,7 @@ export type ProjectInvitationGroupByOutputType = {
   id: string
   email: string
   status: $Enums.InvitationStatus
+  accessLevel: $Enums.UserAccessLevel
   projectId: string
   createdAt: Date
   updatedAt: Date
@@ -194,6 +201,7 @@ export type ProjectInvitationWhereInput = {
   id?: Prisma.UuidFilter<"ProjectInvitation"> | string
   email?: Prisma.StringFilter<"ProjectInvitation"> | string
   status?: Prisma.EnumInvitationStatusFilter<"ProjectInvitation"> | $Enums.InvitationStatus
+  accessLevel?: Prisma.EnumUserAccessLevelFilter<"ProjectInvitation"> | $Enums.UserAccessLevel
   projectId?: Prisma.UuidFilter<"ProjectInvitation"> | string
   createdAt?: Prisma.DateTimeFilter<"ProjectInvitation"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ProjectInvitation"> | Date | string
@@ -205,6 +213,7 @@ export type ProjectInvitationOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   email?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  accessLevel?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -220,6 +229,7 @@ export type ProjectInvitationWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.ProjectInvitationWhereInput | Prisma.ProjectInvitationWhereInput[]
   email?: Prisma.StringFilter<"ProjectInvitation"> | string
   status?: Prisma.EnumInvitationStatusFilter<"ProjectInvitation"> | $Enums.InvitationStatus
+  accessLevel?: Prisma.EnumUserAccessLevelFilter<"ProjectInvitation"> | $Enums.UserAccessLevel
   projectId?: Prisma.UuidFilter<"ProjectInvitation"> | string
   createdAt?: Prisma.DateTimeFilter<"ProjectInvitation"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ProjectInvitation"> | Date | string
@@ -231,6 +241,7 @@ export type ProjectInvitationOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   email?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  accessLevel?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -247,6 +258,7 @@ export type ProjectInvitationScalarWhereWithAggregatesInput = {
   id?: Prisma.UuidWithAggregatesFilter<"ProjectInvitation"> | string
   email?: Prisma.StringWithAggregatesFilter<"ProjectInvitation"> | string
   status?: Prisma.EnumInvitationStatusWithAggregatesFilter<"ProjectInvitation"> | $Enums.InvitationStatus
+  accessLevel?: Prisma.EnumUserAccessLevelWithAggregatesFilter<"ProjectInvitation"> | $Enums.UserAccessLevel
   projectId?: Prisma.UuidWithAggregatesFilter<"ProjectInvitation"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"ProjectInvitation"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"ProjectInvitation"> | Date | string
@@ -257,6 +269,7 @@ export type ProjectInvitationCreateInput = {
   id?: string
   email: string
   status?: $Enums.InvitationStatus
+  accessLevel?: $Enums.UserAccessLevel
   createdAt?: Date | string
   updatedAt?: Date | string
   deletedAt?: Date | string | null
@@ -267,6 +280,7 @@ export type ProjectInvitationUncheckedCreateInput = {
   id?: string
   email: string
   status?: $Enums.InvitationStatus
+  accessLevel?: $Enums.UserAccessLevel
   projectId: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -277,6 +291,7 @@ export type ProjectInvitationUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumInvitationStatusFieldUpdateOperationsInput | $Enums.InvitationStatus
+  accessLevel?: Prisma.EnumUserAccessLevelFieldUpdateOperationsInput | $Enums.UserAccessLevel
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -287,6 +302,7 @@ export type ProjectInvitationUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumInvitationStatusFieldUpdateOperationsInput | $Enums.InvitationStatus
+  accessLevel?: Prisma.EnumUserAccessLevelFieldUpdateOperationsInput | $Enums.UserAccessLevel
   projectId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -297,6 +313,7 @@ export type ProjectInvitationCreateManyInput = {
   id?: string
   email: string
   status?: $Enums.InvitationStatus
+  accessLevel?: $Enums.UserAccessLevel
   projectId: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -307,6 +324,7 @@ export type ProjectInvitationUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumInvitationStatusFieldUpdateOperationsInput | $Enums.InvitationStatus
+  accessLevel?: Prisma.EnumUserAccessLevelFieldUpdateOperationsInput | $Enums.UserAccessLevel
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -316,6 +334,7 @@ export type ProjectInvitationUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumInvitationStatusFieldUpdateOperationsInput | $Enums.InvitationStatus
+  accessLevel?: Prisma.EnumUserAccessLevelFieldUpdateOperationsInput | $Enums.UserAccessLevel
   projectId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -331,6 +350,7 @@ export type ProjectInvitationCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   email?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  accessLevel?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -341,6 +361,7 @@ export type ProjectInvitationMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   email?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  accessLevel?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -351,6 +372,7 @@ export type ProjectInvitationMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   email?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  accessLevel?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -369,6 +391,10 @@ export type ProjectInvitationOrderByRelationAggregateInput = {
 
 export type EnumInvitationStatusFieldUpdateOperationsInput = {
   set?: $Enums.InvitationStatus
+}
+
+export type EnumUserAccessLevelFieldUpdateOperationsInput = {
+  set?: $Enums.UserAccessLevel
 }
 
 export type ProjectInvitationCreateNestedManyWithoutProjectInput = {
@@ -417,6 +443,7 @@ export type ProjectInvitationCreateWithoutProjectInput = {
   id?: string
   email: string
   status?: $Enums.InvitationStatus
+  accessLevel?: $Enums.UserAccessLevel
   createdAt?: Date | string
   updatedAt?: Date | string
   deletedAt?: Date | string | null
@@ -426,6 +453,7 @@ export type ProjectInvitationUncheckedCreateWithoutProjectInput = {
   id?: string
   email: string
   status?: $Enums.InvitationStatus
+  accessLevel?: $Enums.UserAccessLevel
   createdAt?: Date | string
   updatedAt?: Date | string
   deletedAt?: Date | string | null
@@ -464,6 +492,7 @@ export type ProjectInvitationScalarWhereInput = {
   id?: Prisma.UuidFilter<"ProjectInvitation"> | string
   email?: Prisma.StringFilter<"ProjectInvitation"> | string
   status?: Prisma.EnumInvitationStatusFilter<"ProjectInvitation"> | $Enums.InvitationStatus
+  accessLevel?: Prisma.EnumUserAccessLevelFilter<"ProjectInvitation"> | $Enums.UserAccessLevel
   projectId?: Prisma.UuidFilter<"ProjectInvitation"> | string
   createdAt?: Prisma.DateTimeFilter<"ProjectInvitation"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ProjectInvitation"> | Date | string
@@ -474,6 +503,7 @@ export type ProjectInvitationCreateManyProjectInput = {
   id?: string
   email: string
   status?: $Enums.InvitationStatus
+  accessLevel?: $Enums.UserAccessLevel
   createdAt?: Date | string
   updatedAt?: Date | string
   deletedAt?: Date | string | null
@@ -483,6 +513,7 @@ export type ProjectInvitationUpdateWithoutProjectInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumInvitationStatusFieldUpdateOperationsInput | $Enums.InvitationStatus
+  accessLevel?: Prisma.EnumUserAccessLevelFieldUpdateOperationsInput | $Enums.UserAccessLevel
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -492,6 +523,7 @@ export type ProjectInvitationUncheckedUpdateWithoutProjectInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumInvitationStatusFieldUpdateOperationsInput | $Enums.InvitationStatus
+  accessLevel?: Prisma.EnumUserAccessLevelFieldUpdateOperationsInput | $Enums.UserAccessLevel
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -501,6 +533,7 @@ export type ProjectInvitationUncheckedUpdateManyWithoutProjectInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumInvitationStatusFieldUpdateOperationsInput | $Enums.InvitationStatus
+  accessLevel?: Prisma.EnumUserAccessLevelFieldUpdateOperationsInput | $Enums.UserAccessLevel
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -512,6 +545,7 @@ export type ProjectInvitationSelect<ExtArgs extends runtime.Types.Extensions.Int
   id?: boolean
   email?: boolean
   status?: boolean
+  accessLevel?: boolean
   projectId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -523,6 +557,7 @@ export type ProjectInvitationSelectCreateManyAndReturn<ExtArgs extends runtime.T
   id?: boolean
   email?: boolean
   status?: boolean
+  accessLevel?: boolean
   projectId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -534,6 +569,7 @@ export type ProjectInvitationSelectUpdateManyAndReturn<ExtArgs extends runtime.T
   id?: boolean
   email?: boolean
   status?: boolean
+  accessLevel?: boolean
   projectId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -545,13 +581,14 @@ export type ProjectInvitationSelectScalar = {
   id?: boolean
   email?: boolean
   status?: boolean
+  accessLevel?: boolean
   projectId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   deletedAt?: boolean
 }
 
-export type ProjectInvitationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "status" | "projectId" | "createdAt" | "updatedAt" | "deletedAt", ExtArgs["result"]["projectInvitation"]>
+export type ProjectInvitationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "status" | "accessLevel" | "projectId" | "createdAt" | "updatedAt" | "deletedAt", ExtArgs["result"]["projectInvitation"]>
 export type ProjectInvitationInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
 }
@@ -571,6 +608,7 @@ export type $ProjectInvitationPayload<ExtArgs extends runtime.Types.Extensions.I
     id: string
     email: string
     status: $Enums.InvitationStatus
+    accessLevel: $Enums.UserAccessLevel
     projectId: string
     createdAt: Date
     updatedAt: Date
@@ -1002,6 +1040,7 @@ export interface ProjectInvitationFieldRefs {
   readonly id: Prisma.FieldRef<"ProjectInvitation", 'String'>
   readonly email: Prisma.FieldRef<"ProjectInvitation", 'String'>
   readonly status: Prisma.FieldRef<"ProjectInvitation", 'InvitationStatus'>
+  readonly accessLevel: Prisma.FieldRef<"ProjectInvitation", 'UserAccessLevel'>
   readonly projectId: Prisma.FieldRef<"ProjectInvitation", 'String'>
   readonly createdAt: Prisma.FieldRef<"ProjectInvitation", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"ProjectInvitation", 'DateTime'>

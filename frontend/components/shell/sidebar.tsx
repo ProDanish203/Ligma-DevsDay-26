@@ -3,17 +3,16 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, FolderOpen, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, FolderOpen, Settings, ChevronLeft, ChevronRight, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
   { href: '/', icon: LayoutDashboard, label: 'Dashboard', exact: true },
   { href: '/projects', icon: FolderOpen, label: 'Projects', exact: false },
+  { href: '/invitations', icon: Mail, label: 'Invitations', exact: false },
 ];
 
-const BOTTOM_ITEMS = [
-  { href: '/settings', icon: Settings, label: 'Settings', exact: false },
-];
+const BOTTOM_ITEMS = [{ href: '/settings', icon: Settings, label: 'Settings', exact: false }];
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
@@ -40,15 +39,10 @@ export function Sidebar() {
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-brand-primary to-brand-secondary text-[11px] font-bold text-white shadow-sm">
             L
           </div>
-          {!collapsed && (
-            <span className="text-[15px] font-semibold tracking-tight text-gray-900">Ligma</span>
-          )}
+          {!collapsed && <span className="text-[15px] font-semibold tracking-tight text-gray-900">Ligma</span>}
         </div>
         {!collapsed && (
-          <button
-            onClick={() => setCollapsed(true)}
-            className="text-gray-300 transition-colors hover:text-gray-500"
-          >
+          <button onClick={() => setCollapsed(true)} className="text-gray-300 transition-colors hover:text-gray-500">
             <ChevronLeft className="size-4" />
           </button>
         )}

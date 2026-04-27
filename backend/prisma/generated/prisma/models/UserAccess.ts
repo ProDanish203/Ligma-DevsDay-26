@@ -436,10 +436,6 @@ export type EnumUserAccessTypeFieldUpdateOperationsInput = {
   set?: $Enums.UserAccessType
 }
 
-export type EnumUserAccessLevelFieldUpdateOperationsInput = {
-  set?: $Enums.UserAccessLevel
-}
-
 export type UserAccessCreateWithoutUserInput = {
   id?: string
   entityId: string

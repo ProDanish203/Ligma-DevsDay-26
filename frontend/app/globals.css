@@ -79,8 +79,8 @@
   --radius: 0.625rem;
 
   /* Brand colors */
-  --brand-primary: #F43F7A;
-  --brand-secondary: #FDA4C4;
+  --brand-primary: #f43f7a;
+  --brand-secondary: #fda4c4;
 
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
