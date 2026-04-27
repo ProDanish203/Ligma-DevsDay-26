@@ -112,6 +112,21 @@ export const getDashboardStats = async () => {
   }
 };
 
+export const removeProjectMember = async (projectId: string, userAccessId: string) => {
+  try {
+    const { data } = await api.delete(`/project/${projectId}/members/${userAccessId}`, { withCredentials: true });
+    if (data?.success) {
+      return { success: true, response: data.message || 'Member removed' };
+    }
+    return { success: false, response: data?.message || 'Failed to remove member' };
+  } catch (error) {
+    if (error instanceof AxiosError) {
+      return { success: false, response: error.response?.data?.message || 'Failed to remove member' };
+    }
+    return { success: false, response: 'Failed to remove member' };
+  }
+};
+
 export const updateProjectMemberAccess = async (
   projectId: string,
   userAccessId: string,

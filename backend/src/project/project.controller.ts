@@ -80,6 +80,20 @@ export class ProjectController {
 
   @Roles(...Object.values(UserRole))
   @ApiProperty({
+    title: 'Remove Project Member',
+    description: 'Remove a member from a project (owner only)',
+  })
+  @Delete(':projectId/members/:userAccessId')
+  async removeProjectMember(
+    @CurrentUser() user: User,
+    @Param('projectId') projectId: string,
+    @Param('userAccessId') userAccessId: string,
+  ) {
+    return this.projectService.removeProjectMember(user, projectId, userAccessId);
+  }
+
+  @Roles(...Object.values(UserRole))
+  @ApiProperty({
     title: 'Update Project',
     description: 'Update project name and description',
     type: UpdateProjectDto,

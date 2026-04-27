@@ -373,7 +373,7 @@ export class ProjectService {
         orderBy: { createdAt: 'asc' },
       });
 
-      const members = memberRows.map((row) => ({
+      const members = memberRows.filter((row) => row.userId !== project.userId).map((row) => ({
         userAccessId: row.id,
         userId: row.user.id,
         name: row.user.name,
@@ -524,6 +524,39 @@ export class ProjectService {
       };
     } catch (err: any) {
       throw throwError(err.message || 'Failed to update member access', err.status || HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  async removeProjectMember(user: User, projectId: string, userAccessId: string): Promise<ApiResponse<null>> {
+    try {
+      if (!(await this.isProjectOwner(user.id, projectId))) {
+        throw throwError('Only the project owner can remove members', HttpStatus.FORBIDDEN);
+      }
+
+      const project = await this.prismaService.project.findFirst({
+        where: { id: projectId, deletedAt: null },
+        select: { userId: true },
+      });
+      if (!project) throw throwError('Project not found', HttpStatus.NOT_FOUND);
+
+      const target = await this.prismaService.userAccess.findFirst({
+        where: { id: userAccessId, entityId: projectId, entityType: UserAccessType.PROJECT, deletedAt: null },
+        select: { id: true, userId: true },
+      });
+
+      if (!target) throw throwError('Member access record not found', HttpStatus.NOT_FOUND);
+      if (target.userId === project.userId) {
+        throw throwError('Cannot remove the project owner', HttpStatus.BAD_REQUEST);
+      }
+
+      await this.prismaService.userAccess.update({
+        where: { id: userAccessId },
+        data: { deletedAt: new Date() },
+      });
+
+      return { message: 'Member removed successfully', success: true, data: null };
+    } catch (err: any) {
+      throw throwError(err.message || 'Failed to remove member', err.status || HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 }

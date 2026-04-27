@@ -7,7 +7,7 @@ import { Loader2, Mail, UserPlus, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
-import { getProjectMembers, updateProjectMemberAccess } from '@/API/project.api';
+import { getProjectMembers, removeProjectMember, updateProjectMemberAccess } from '@/API/project.api';
 import { getProjectInvitations, inviteUserToProject, revokeInvitation } from '@/API/project-invitations.api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -130,6 +130,20 @@ export function ProjectAccessModal({ open, onOpenChange, project, onChanged }: P
     setUpdatingId(null);
     if (result.success) {
       toast.success('Role updated');
+      await loadData();
+      onChanged();
+    } else {
+      toast.error(result.response as string);
+    }
+  };
+
+  const onRemoveMember = async (userAccessId: string) => {
+    if (!project) return;
+    setUpdatingId(userAccessId);
+    const result = await removeProjectMember(project.id, userAccessId);
+    setUpdatingId(null);
+    if (result.success) {
+      toast.success('Member removed');
       await loadData();
       onChanged();
     } else {
@@ -288,28 +302,42 @@ export function ProjectAccessModal({ open, onOpenChange, project, onChanged }: P
                             <p className="truncate text-sm font-medium text-gray-800">{m.name}</p>
                             <p className="truncate text-xs text-gray-500">{m.email}</p>
                           </div>
-                          {canChange ? (
-                            <Select
-                              value={m.accessLevel}
-                              disabled={updatingId === m.userAccessId}
-                              onValueChange={(v) => void onRoleChange(m.userAccessId, v as UserAccessLevel)}
-                            >
-                              <SelectTrigger className="w-full min-w-[140px] sm:w-[160px]" size="sm">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {selectOptions.map((lvl) => (
-                                  <SelectItem key={lvl} value={lvl}>
-                                    {LEVEL_LABEL[lvl]}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          ) : (
-                            <Badge variant="outline" className="w-fit">
-                              {LEVEL_LABEL[m.accessLevel]}
-                            </Badge>
-                          )}
+                          <div className="flex shrink-0 items-center gap-2">
+                            {canChange ? (
+                              <Select
+                                value={m.accessLevel}
+                                disabled={updatingId === m.userAccessId}
+                                onValueChange={(v) => void onRoleChange(m.userAccessId, v as UserAccessLevel)}
+                              >
+                                <SelectTrigger className="w-full min-w-35 sm:w-40" size="sm">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {selectOptions.map((lvl) => (
+                                    <SelectItem key={lvl} value={lvl}>
+                                      {LEVEL_LABEL[lvl]}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <Badge variant="outline" className="w-fit">
+                                {LEVEL_LABEL[m.accessLevel]}
+                              </Badge>
+                            )}
+                            {ownerFlag && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={updatingId === m.userAccessId}
+                                onClick={() => void onRemoveMember(m.userAccessId)}
+                                className="shrink-0 text-red-600 hover:border-red-300 hover:bg-red-50 hover:text-red-700"
+                              >
+                                Remove
+                              </Button>
+                            )}
+                          </div>
                         </li>
                       );
                     })}
