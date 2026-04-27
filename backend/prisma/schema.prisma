@@ -39,6 +39,8 @@ model User {
 
   projects     Project[]
   userAccesses UserAccess[]
+  actorLogs    Log[] @relation("ActorLogs")
+  targetLogs   Log[] @relation("TargetLogs")
 
   @@index([name])
   @@index([email])
@@ -66,13 +68,7 @@ model ProjectInvitation {
   @@index([email])
   @@index([projectId])
   @@index([status])
-}
-
-enum ProjectAccessLevel {
-  VIEWER
-  EDITOR
-  COMMENTATOR
-  LEAD
+  @@unique([projectId, email])
 }
 
 enum ProjectVisibility {
@@ -128,6 +124,47 @@ model UserAccess {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  @@unique([userId, entityType])
+  @@unique([userId, entityType, entityId])
   @@index([userId])
+  @@index([entityType, entityId])
+}
+
+enum LogLevel {
+  INFO
+  WARN
+  ERROR
+}
+
+enum LogEntityType {
+  PROJECT
+  NODE
+  PROJECT_INVITATION
+  USER_ACCESS
+  USER
+}
+
+model Log {
+  id      String       @id @unique @default(uuid()) @db.Uuid
+  level   LogLevel     @default(INFO)
+  action  String
+  message String
+
+  entityId   String        @db.Uuid
+  entityType LogEntityType
+
+  actorUserId String? @db.Uuid
+  actorUser   User?   @relation("ActorLogs", fields: [actorUserId], references: [id])
+
+  targetUserId String? @db.Uuid
+  targetUser   User?   @relation("TargetLogs", fields: [targetUserId], references: [id])
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([entityType, entityId, createdAt])
+  @@index([actorUserId])
+  @@index([targetUserId])
+  @@index([createdAt])
 }
