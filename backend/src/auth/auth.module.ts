@@ -26,5 +26,6 @@ import { GoogleStrategy } from './strategies/google-oauth.strategy';
   ],
   controllers: [AuthController],
   providers: [AuthService, PrismaService, GoogleStrategy],
+  exports: [AuthService],
 })
 export class AuthModule {}
