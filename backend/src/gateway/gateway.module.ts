@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { AuthController } from './auth.controller';
-import { AuthService } from './auth.service';
 import { JwtModule } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
+import { AppGateway } from './gateway';
+import { WsAuthGuard } from '../common/guards/ws-auth.guard';
 import { PrismaService } from '../common/services/prisma.service';
-import { GoogleStrategy } from './strategies/google-oauth.strategy';
+import { AuthService } from 'src/auth/auth.service';
+import { ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
@@ -24,8 +24,7 @@ import { GoogleStrategy } from './strategies/google-oauth.strategy';
       inject: [ConfigService],
     }),
   ],
-  controllers: [AuthController],
-  providers: [AuthService, PrismaService, GoogleStrategy],
-  exports: [AuthService],
+  providers: [AppGateway, WsAuthGuard, PrismaService, AuthService],
+  exports: [AppGateway],
 })
-export class AuthModule {}
+export class GatewayModule { }

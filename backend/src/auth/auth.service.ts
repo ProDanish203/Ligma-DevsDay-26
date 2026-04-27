@@ -15,7 +15,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
-  ) {}
+  ) { }
 
   private async signJwtTokenToCookies(res: Response, payload: JwtPayload): Promise<string> {
     const token = await this.jwtService.signAsync(payload);
@@ -191,4 +191,18 @@ export class AuthService {
       );
     }
   }
+
+  async verifyTokenAndGetUser(token: string) {
+    const payload = await this.jwtService.verifyAsync(token, {
+      secret: process.env.JWT_SECRET as string,
+    });
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.id },
+      select: { id: true, role: true, email: true, name: true },
+    });
+
+    return user ?? null;
+  }
+
 }
