@@ -37,6 +37,97 @@ model User {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
+  projects     Project[]
+  userAccesses UserAccess[]
+
   @@index([name])
   @@index([email])
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model ProjectInvitation {
+  id    String @id @unique @default(uuid()) @db.Uuid
+  email String
+
+  status InvitationStatus @default(PENDING)
+
+  projectId String  @db.Uuid
+  project   Project @relation(fields: [projectId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([email])
+  @@index([projectId])
+  @@index([status])
+}
+
+enum ProjectAccessLevel {
+  VIEWER
+  EDITOR
+  COMMENTATOR
+  LEAD
+}
+
+enum ProjectVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+model Project {
+  id          String  @id @unique @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  userId      String  @db.Uuid
+
+  user User @relation(fields: [userId], references: [id])
+
+  visibility ProjectVisibility @default(PRIVATE)
+
+  invitations ProjectInvitation[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([name, userId])
+  @@index([name])
+  @@index([userId])
+}
+
+enum UserAccessLevel {
+  VIEWER
+  EDITOR
+  COMMENTATOR
+  LEAD
+}
+
+enum UserAccessType {
+  PROJECT
+  NODE
+}
+
+model UserAccess {
+  id String @id @unique @default(uuid()) @db.Uuid
+
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id])
+
+  entityId   String         @db.Uuid
+  entityType UserAccessType @default(PROJECT)
+
+  accessLevel UserAccessLevel @default(VIEWER)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([userId, entityType])
+  @@index([userId])
 }
