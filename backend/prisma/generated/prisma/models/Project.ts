@@ -208,6 +208,8 @@ export type ProjectWhereInput = {
   deletedAt?: Prisma.DateTimeNullableFilter<"Project"> | Date | string | null
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   invitations?: Prisma.ProjectInvitationListRelationFilter
+  canvasNodes?: Prisma.CanvasNodeListRelationFilter
+  canvasEdges?: Prisma.CanvasEdgeListRelationFilter
 }
 
 export type ProjectOrderByWithRelationInput = {
@@ -221,6 +223,8 @@ export type ProjectOrderByWithRelationInput = {
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
   invitations?: Prisma.ProjectInvitationOrderByRelationAggregateInput
+  canvasNodes?: Prisma.CanvasNodeOrderByRelationAggregateInput
+  canvasEdges?: Prisma.CanvasEdgeOrderByRelationAggregateInput
 }
 
 export type ProjectWhereUniqueInput = Prisma.AtLeast<{
@@ -238,6 +242,8 @@ export type ProjectWhereUniqueInput = Prisma.AtLeast<{
   deletedAt?: Prisma.DateTimeNullableFilter<"Project"> | Date | string | null
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   invitations?: Prisma.ProjectInvitationListRelationFilter
+  canvasNodes?: Prisma.CanvasNodeListRelationFilter
+  canvasEdges?: Prisma.CanvasEdgeListRelationFilter
 }, "id" | "id" | "name_userId">
 
 export type ProjectOrderByWithAggregationInput = {
@@ -278,6 +284,8 @@ export type ProjectCreateInput = {
   deletedAt?: Date | string | null
   user: Prisma.UserCreateNestedOneWithoutProjectsInput
   invitations?: Prisma.ProjectInvitationCreateNestedManyWithoutProjectInput
+  canvasNodes?: Prisma.CanvasNodeCreateNestedManyWithoutProjectInput
+  canvasEdges?: Prisma.CanvasEdgeCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateInput = {
@@ -290,6 +298,8 @@ export type ProjectUncheckedCreateInput = {
   updatedAt?: Date | string
   deletedAt?: Date | string | null
   invitations?: Prisma.ProjectInvitationUncheckedCreateNestedManyWithoutProjectInput
+  canvasNodes?: Prisma.CanvasNodeUncheckedCreateNestedManyWithoutProjectInput
+  canvasEdges?: Prisma.CanvasEdgeUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUpdateInput = {
@@ -302,6 +312,8 @@ export type ProjectUpdateInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   user?: Prisma.UserUpdateOneRequiredWithoutProjectsNestedInput
   invitations?: Prisma.ProjectInvitationUpdateManyWithoutProjectNestedInput
+  canvasNodes?: Prisma.CanvasNodeUpdateManyWithoutProjectNestedInput
+  canvasEdges?: Prisma.CanvasEdgeUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateInput = {
@@ -314,6 +326,8 @@ export type ProjectUncheckedUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   invitations?: Prisma.ProjectInvitationUncheckedUpdateManyWithoutProjectNestedInput
+  canvasNodes?: Prisma.CanvasNodeUncheckedUpdateManyWithoutProjectNestedInput
+  canvasEdges?: Prisma.CanvasEdgeUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateManyInput = {
@@ -461,6 +475,34 @@ export type EnumProjectVisibilityFieldUpdateOperationsInput = {
   set?: $Enums.ProjectVisibility
 }
 
+export type ProjectCreateNestedOneWithoutCanvasNodesInput = {
+  create?: Prisma.XOR<Prisma.ProjectCreateWithoutCanvasNodesInput, Prisma.ProjectUncheckedCreateWithoutCanvasNodesInput>
+  connectOrCreate?: Prisma.ProjectCreateOrConnectWithoutCanvasNodesInput
+  connect?: Prisma.ProjectWhereUniqueInput
+}
+
+export type ProjectUpdateOneRequiredWithoutCanvasNodesNestedInput = {
+  create?: Prisma.XOR<Prisma.ProjectCreateWithoutCanvasNodesInput, Prisma.ProjectUncheckedCreateWithoutCanvasNodesInput>
+  connectOrCreate?: Prisma.ProjectCreateOrConnectWithoutCanvasNodesInput
+  upsert?: Prisma.ProjectUpsertWithoutCanvasNodesInput
+  connect?: Prisma.ProjectWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ProjectUpdateToOneWithWhereWithoutCanvasNodesInput, Prisma.ProjectUpdateWithoutCanvasNodesInput>, Prisma.ProjectUncheckedUpdateWithoutCanvasNodesInput>
+}
+
+export type ProjectCreateNestedOneWithoutCanvasEdgesInput = {
+  create?: Prisma.XOR<Prisma.ProjectCreateWithoutCanvasEdgesInput, Prisma.ProjectUncheckedCreateWithoutCanvasEdgesInput>
+  connectOrCreate?: Prisma.ProjectCreateOrConnectWithoutCanvasEdgesInput
+  connect?: Prisma.ProjectWhereUniqueInput
+}
+
+export type ProjectUpdateOneRequiredWithoutCanvasEdgesNestedInput = {
+  create?: Prisma.XOR<Prisma.ProjectCreateWithoutCanvasEdgesInput, Prisma.ProjectUncheckedCreateWithoutCanvasEdgesInput>
+  connectOrCreate?: Prisma.ProjectCreateOrConnectWithoutCanvasEdgesInput
+  upsert?: Prisma.ProjectUpsertWithoutCanvasEdgesInput
+  connect?: Prisma.ProjectWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ProjectUpdateToOneWithWhereWithoutCanvasEdgesInput, Prisma.ProjectUpdateWithoutCanvasEdgesInput>, Prisma.ProjectUncheckedUpdateWithoutCanvasEdgesInput>
+}
+
 export type ProjectCreateWithoutUserInput = {
   id?: string
   name: string
@@ -470,6 +512,8 @@ export type ProjectCreateWithoutUserInput = {
   updatedAt?: Date | string
   deletedAt?: Date | string | null
   invitations?: Prisma.ProjectInvitationCreateNestedManyWithoutProjectInput
+  canvasNodes?: Prisma.CanvasNodeCreateNestedManyWithoutProjectInput
+  canvasEdges?: Prisma.CanvasEdgeCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutUserInput = {
@@ -481,6 +525,8 @@ export type ProjectUncheckedCreateWithoutUserInput = {
   updatedAt?: Date | string
   deletedAt?: Date | string | null
   invitations?: Prisma.ProjectInvitationUncheckedCreateNestedManyWithoutProjectInput
+  canvasNodes?: Prisma.CanvasNodeUncheckedCreateNestedManyWithoutProjectInput
+  canvasEdges?: Prisma.CanvasEdgeUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutUserInput = {
@@ -532,6 +578,8 @@ export type ProjectCreateWithoutInvitationsInput = {
   updatedAt?: Date | string
   deletedAt?: Date | string | null
   user: Prisma.UserCreateNestedOneWithoutProjectsInput
+  canvasNodes?: Prisma.CanvasNodeCreateNestedManyWithoutProjectInput
+  canvasEdges?: Prisma.CanvasEdgeCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutInvitationsInput = {
@@ -543,6 +591,8 @@ export type ProjectUncheckedCreateWithoutInvitationsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   deletedAt?: Date | string | null
+  canvasNodes?: Prisma.CanvasNodeUncheckedCreateNestedManyWithoutProjectInput
+  canvasEdges?: Prisma.CanvasEdgeUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutInvitationsInput = {
@@ -570,6 +620,8 @@ export type ProjectUpdateWithoutInvitationsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   user?: Prisma.UserUpdateOneRequiredWithoutProjectsNestedInput
+  canvasNodes?: Prisma.CanvasNodeUpdateManyWithoutProjectNestedInput
+  canvasEdges?: Prisma.CanvasEdgeUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutInvitationsInput = {
@@ -581,6 +633,144 @@ export type ProjectUncheckedUpdateWithoutInvitationsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  canvasNodes?: Prisma.CanvasNodeUncheckedUpdateManyWithoutProjectNestedInput
+  canvasEdges?: Prisma.CanvasEdgeUncheckedUpdateManyWithoutProjectNestedInput
+}
+
+export type ProjectCreateWithoutCanvasNodesInput = {
+  id?: string
+  name: string
+  description?: string | null
+  visibility?: $Enums.ProjectVisibility
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  user: Prisma.UserCreateNestedOneWithoutProjectsInput
+  invitations?: Prisma.ProjectInvitationCreateNestedManyWithoutProjectInput
+  canvasEdges?: Prisma.CanvasEdgeCreateNestedManyWithoutProjectInput
+}
+
+export type ProjectUncheckedCreateWithoutCanvasNodesInput = {
+  id?: string
+  name: string
+  description?: string | null
+  userId: string
+  visibility?: $Enums.ProjectVisibility
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  invitations?: Prisma.ProjectInvitationUncheckedCreateNestedManyWithoutProjectInput
+  canvasEdges?: Prisma.CanvasEdgeUncheckedCreateNestedManyWithoutProjectInput
+}
+
+export type ProjectCreateOrConnectWithoutCanvasNodesInput = {
+  where: Prisma.ProjectWhereUniqueInput
+  create: Prisma.XOR<Prisma.ProjectCreateWithoutCanvasNodesInput, Prisma.ProjectUncheckedCreateWithoutCanvasNodesInput>
+}
+
+export type ProjectUpsertWithoutCanvasNodesInput = {
+  update: Prisma.XOR<Prisma.ProjectUpdateWithoutCanvasNodesInput, Prisma.ProjectUncheckedUpdateWithoutCanvasNodesInput>
+  create: Prisma.XOR<Prisma.ProjectCreateWithoutCanvasNodesInput, Prisma.ProjectUncheckedCreateWithoutCanvasNodesInput>
+  where?: Prisma.ProjectWhereInput
+}
+
+export type ProjectUpdateToOneWithWhereWithoutCanvasNodesInput = {
+  where?: Prisma.ProjectWhereInput
+  data: Prisma.XOR<Prisma.ProjectUpdateWithoutCanvasNodesInput, Prisma.ProjectUncheckedUpdateWithoutCanvasNodesInput>
+}
+
+export type ProjectUpdateWithoutCanvasNodesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  visibility?: Prisma.EnumProjectVisibilityFieldUpdateOperationsInput | $Enums.ProjectVisibility
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  user?: Prisma.UserUpdateOneRequiredWithoutProjectsNestedInput
+  invitations?: Prisma.ProjectInvitationUpdateManyWithoutProjectNestedInput
+  canvasEdges?: Prisma.CanvasEdgeUpdateManyWithoutProjectNestedInput
+}
+
+export type ProjectUncheckedUpdateWithoutCanvasNodesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  visibility?: Prisma.EnumProjectVisibilityFieldUpdateOperationsInput | $Enums.ProjectVisibility
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  invitations?: Prisma.ProjectInvitationUncheckedUpdateManyWithoutProjectNestedInput
+  canvasEdges?: Prisma.CanvasEdgeUncheckedUpdateManyWithoutProjectNestedInput
+}
+
+export type ProjectCreateWithoutCanvasEdgesInput = {
+  id?: string
+  name: string
+  description?: string | null
+  visibility?: $Enums.ProjectVisibility
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  user: Prisma.UserCreateNestedOneWithoutProjectsInput
+  invitations?: Prisma.ProjectInvitationCreateNestedManyWithoutProjectInput
+  canvasNodes?: Prisma.CanvasNodeCreateNestedManyWithoutProjectInput
+}
+
+export type ProjectUncheckedCreateWithoutCanvasEdgesInput = {
+  id?: string
+  name: string
+  description?: string | null
+  userId: string
+  visibility?: $Enums.ProjectVisibility
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  invitations?: Prisma.ProjectInvitationUncheckedCreateNestedManyWithoutProjectInput
+  canvasNodes?: Prisma.CanvasNodeUncheckedCreateNestedManyWithoutProjectInput
+}
+
+export type ProjectCreateOrConnectWithoutCanvasEdgesInput = {
+  where: Prisma.ProjectWhereUniqueInput
+  create: Prisma.XOR<Prisma.ProjectCreateWithoutCanvasEdgesInput, Prisma.ProjectUncheckedCreateWithoutCanvasEdgesInput>
+}
+
+export type ProjectUpsertWithoutCanvasEdgesInput = {
+  update: Prisma.XOR<Prisma.ProjectUpdateWithoutCanvasEdgesInput, Prisma.ProjectUncheckedUpdateWithoutCanvasEdgesInput>
+  create: Prisma.XOR<Prisma.ProjectCreateWithoutCanvasEdgesInput, Prisma.ProjectUncheckedCreateWithoutCanvasEdgesInput>
+  where?: Prisma.ProjectWhereInput
+}
+
+export type ProjectUpdateToOneWithWhereWithoutCanvasEdgesInput = {
+  where?: Prisma.ProjectWhereInput
+  data: Prisma.XOR<Prisma.ProjectUpdateWithoutCanvasEdgesInput, Prisma.ProjectUncheckedUpdateWithoutCanvasEdgesInput>
+}
+
+export type ProjectUpdateWithoutCanvasEdgesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  visibility?: Prisma.EnumProjectVisibilityFieldUpdateOperationsInput | $Enums.ProjectVisibility
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  user?: Prisma.UserUpdateOneRequiredWithoutProjectsNestedInput
+  invitations?: Prisma.ProjectInvitationUpdateManyWithoutProjectNestedInput
+  canvasNodes?: Prisma.CanvasNodeUpdateManyWithoutProjectNestedInput
+}
+
+export type ProjectUncheckedUpdateWithoutCanvasEdgesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  visibility?: Prisma.EnumProjectVisibilityFieldUpdateOperationsInput | $Enums.ProjectVisibility
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  invitations?: Prisma.ProjectInvitationUncheckedUpdateManyWithoutProjectNestedInput
+  canvasNodes?: Prisma.CanvasNodeUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateManyUserInput = {
@@ -602,6 +792,8 @@ export type ProjectUpdateWithoutUserInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   invitations?: Prisma.ProjectInvitationUpdateManyWithoutProjectNestedInput
+  canvasNodes?: Prisma.CanvasNodeUpdateManyWithoutProjectNestedInput
+  canvasEdges?: Prisma.CanvasEdgeUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutUserInput = {
@@ -613,6 +805,8 @@ export type ProjectUncheckedUpdateWithoutUserInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   invitations?: Prisma.ProjectInvitationUncheckedUpdateManyWithoutProjectNestedInput
+  canvasNodes?: Prisma.CanvasNodeUncheckedUpdateManyWithoutProjectNestedInput
+  canvasEdges?: Prisma.CanvasEdgeUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateManyWithoutUserInput = {
@@ -632,10 +826,14 @@ export type ProjectUncheckedUpdateManyWithoutUserInput = {
 
 export type ProjectCountOutputType = {
   invitations: number
+  canvasNodes: number
+  canvasEdges: number
 }
 
 export type ProjectCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   invitations?: boolean | ProjectCountOutputTypeCountInvitationsArgs
+  canvasNodes?: boolean | ProjectCountOutputTypeCountCanvasNodesArgs
+  canvasEdges?: boolean | ProjectCountOutputTypeCountCanvasEdgesArgs
 }
 
 /**
@@ -655,6 +853,20 @@ export type ProjectCountOutputTypeCountInvitationsArgs<ExtArgs extends runtime.T
   where?: Prisma.ProjectInvitationWhereInput
 }
 
+/**
+ * ProjectCountOutputType without action
+ */
+export type ProjectCountOutputTypeCountCanvasNodesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.CanvasNodeWhereInput
+}
+
+/**
+ * ProjectCountOutputType without action
+ */
+export type ProjectCountOutputTypeCountCanvasEdgesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.CanvasEdgeWhereInput
+}
+
 
 export type ProjectSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -667,6 +879,8 @@ export type ProjectSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   deletedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   invitations?: boolean | Prisma.Project$invitationsArgs<ExtArgs>
+  canvasNodes?: boolean | Prisma.Project$canvasNodesArgs<ExtArgs>
+  canvasEdges?: boolean | Prisma.Project$canvasEdgesArgs<ExtArgs>
   _count?: boolean | Prisma.ProjectCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["project"]>
 
@@ -709,6 +923,8 @@ export type ProjectOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
 export type ProjectInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   invitations?: boolean | Prisma.Project$invitationsArgs<ExtArgs>
+  canvasNodes?: boolean | Prisma.Project$canvasNodesArgs<ExtArgs>
+  canvasEdges?: boolean | Prisma.Project$canvasEdgesArgs<ExtArgs>
   _count?: boolean | Prisma.ProjectCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ProjectIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -723,6 +939,8 @@ export type $ProjectPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
   objects: {
     user: Prisma.$UserPayload<ExtArgs>
     invitations: Prisma.$ProjectInvitationPayload<ExtArgs>[]
+    canvasNodes: Prisma.$CanvasNodePayload<ExtArgs>[]
+    canvasEdges: Prisma.$CanvasEdgePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1129,6 +1347,8 @@ export interface Prisma__ProjectClient<T, Null = never, ExtArgs extends runtime.
   readonly [Symbol.toStringTag]: "PrismaPromise"
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   invitations<T extends Prisma.Project$invitationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$invitationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ProjectInvitationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  canvasNodes<T extends Prisma.Project$canvasNodesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$canvasNodesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CanvasNodePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  canvasEdges<T extends Prisma.Project$canvasEdgesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$canvasEdgesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CanvasEdgePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1588,6 +1808,54 @@ export type Project$invitationsArgs<ExtArgs extends runtime.Types.Extensions.Int
   take?: number
   skip?: number
   distinct?: Prisma.ProjectInvitationScalarFieldEnum | Prisma.ProjectInvitationScalarFieldEnum[]
+}
+
+/**
+ * Project.canvasNodes
+ */
+export type Project$canvasNodesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CanvasNode
+   */
+  select?: Prisma.CanvasNodeSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CanvasNode
+   */
+  omit?: Prisma.CanvasNodeOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CanvasNodeInclude<ExtArgs> | null
+  where?: Prisma.CanvasNodeWhereInput
+  orderBy?: Prisma.CanvasNodeOrderByWithRelationInput | Prisma.CanvasNodeOrderByWithRelationInput[]
+  cursor?: Prisma.CanvasNodeWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CanvasNodeScalarFieldEnum | Prisma.CanvasNodeScalarFieldEnum[]
+}
+
+/**
+ * Project.canvasEdges
+ */
+export type Project$canvasEdgesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CanvasEdge
+   */
+  select?: Prisma.CanvasEdgeSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CanvasEdge
+   */
+  omit?: Prisma.CanvasEdgeOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CanvasEdgeInclude<ExtArgs> | null
+  where?: Prisma.CanvasEdgeWhereInput
+  orderBy?: Prisma.CanvasEdgeOrderByWithRelationInput | Prisma.CanvasEdgeOrderByWithRelationInput[]
+  cursor?: Prisma.CanvasEdgeWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CanvasEdgeScalarFieldEnum | Prisma.CanvasEdgeScalarFieldEnum[]
 }
 
 /**

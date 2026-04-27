@@ -387,6 +387,8 @@ export const ModelName = {
   User: 'User',
   ProjectInvitation: 'ProjectInvitation',
   Project: 'Project',
+  CanvasNode: 'CanvasNode',
+  CanvasEdge: 'CanvasEdge',
   UserAccess: 'UserAccess',
   Log: 'Log'
 } as const
@@ -404,7 +406,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "projectInvitation" | "project" | "userAccess" | "log"
+    modelProps: "user" | "projectInvitation" | "project" | "canvasNode" | "canvasEdge" | "userAccess" | "log"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -627,6 +629,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.ProjectCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.ProjectCountAggregateOutputType> | number
+        }
+      }
+    }
+    CanvasNode: {
+      payload: Prisma.$CanvasNodePayload<ExtArgs>
+      fields: Prisma.CanvasNodeFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CanvasNodeFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CanvasNodePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CanvasNodeFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CanvasNodePayload>
+        }
+        findFirst: {
+          args: Prisma.CanvasNodeFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CanvasNodePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CanvasNodeFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CanvasNodePayload>
+        }
+        findMany: {
+          args: Prisma.CanvasNodeFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CanvasNodePayload>[]
+        }
+        create: {
+          args: Prisma.CanvasNodeCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CanvasNodePayload>
+        }
+        createMany: {
+          args: Prisma.CanvasNodeCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CanvasNodeCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CanvasNodePayload>[]
+        }
+        delete: {
+          args: Prisma.CanvasNodeDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CanvasNodePayload>
+        }
+        update: {
+          args: Prisma.CanvasNodeUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CanvasNodePayload>
+        }
+        deleteMany: {
+          args: Prisma.CanvasNodeDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CanvasNodeUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CanvasNodeUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CanvasNodePayload>[]
+        }
+        upsert: {
+          args: Prisma.CanvasNodeUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CanvasNodePayload>
+        }
+        aggregate: {
+          args: Prisma.CanvasNodeAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCanvasNode>
+        }
+        groupBy: {
+          args: Prisma.CanvasNodeGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CanvasNodeGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CanvasNodeCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CanvasNodeCountAggregateOutputType> | number
+        }
+      }
+    }
+    CanvasEdge: {
+      payload: Prisma.$CanvasEdgePayload<ExtArgs>
+      fields: Prisma.CanvasEdgeFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CanvasEdgeFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CanvasEdgePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CanvasEdgeFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CanvasEdgePayload>
+        }
+        findFirst: {
+          args: Prisma.CanvasEdgeFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CanvasEdgePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CanvasEdgeFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CanvasEdgePayload>
+        }
+        findMany: {
+          args: Prisma.CanvasEdgeFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CanvasEdgePayload>[]
+        }
+        create: {
+          args: Prisma.CanvasEdgeCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CanvasEdgePayload>
+        }
+        createMany: {
+          args: Prisma.CanvasEdgeCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CanvasEdgeCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CanvasEdgePayload>[]
+        }
+        delete: {
+          args: Prisma.CanvasEdgeDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CanvasEdgePayload>
+        }
+        update: {
+          args: Prisma.CanvasEdgeUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CanvasEdgePayload>
+        }
+        deleteMany: {
+          args: Prisma.CanvasEdgeDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CanvasEdgeUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CanvasEdgeUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CanvasEdgePayload>[]
+        }
+        upsert: {
+          args: Prisma.CanvasEdgeUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CanvasEdgePayload>
+        }
+        aggregate: {
+          args: Prisma.CanvasEdgeAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCanvasEdge>
+        }
+        groupBy: {
+          args: Prisma.CanvasEdgeGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CanvasEdgeGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CanvasEdgeCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CanvasEdgeCountAggregateOutputType> | number
         }
       }
     }
@@ -865,6 +1015,42 @@ export const ProjectScalarFieldEnum = {
 export type ProjectScalarFieldEnum = (typeof ProjectScalarFieldEnum)[keyof typeof ProjectScalarFieldEnum]
 
 
+export const CanvasNodeScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  type: 'type',
+  positionX: 'positionX',
+  positionY: 'positionY',
+  width: 'width',
+  height: 'height',
+  data: 'data',
+  createdById: 'createdById',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+} as const
+
+export type CanvasNodeScalarFieldEnum = (typeof CanvasNodeScalarFieldEnum)[keyof typeof CanvasNodeScalarFieldEnum]
+
+
+export const CanvasEdgeScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  sourceNodeId: 'sourceNodeId',
+  targetNodeId: 'targetNodeId',
+  sourceHandle: 'sourceHandle',
+  targetHandle: 'targetHandle',
+  label: 'label',
+  color: 'color',
+  createdById: 'createdById',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+} as const
+
+export type CanvasEdgeScalarFieldEnum = (typeof CanvasEdgeScalarFieldEnum)[keyof typeof CanvasEdgeScalarFieldEnum]
+
+
 export const UserAccessScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -902,6 +1088,13 @@ export const SortOrder = {
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const NullableJsonNullValueInput = {
@@ -1049,6 +1242,34 @@ export type ListEnumProjectVisibilityFieldRefInput<$PrismaModel> = FieldRefInput
 
 
 /**
+ * Reference to a field of type 'Float'
+ */
+export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
+    
+
+
+/**
+ * Reference to a field of type 'Float[]'
+ */
+export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Json'
+ */
+export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+/**
+ * Reference to a field of type 'QueryMode'
+ */
+export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+/**
  * Reference to a field of type 'UserAccessType'
  */
 export type EnumUserAccessTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'UserAccessType'>
@@ -1087,20 +1308,6 @@ export type EnumLogEntityTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$Pr
  * Reference to a field of type 'LogEntityType[]'
  */
 export type ListEnumLogEntityTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LogEntityType[]'>
-    
-
-
-/**
- * Reference to a field of type 'Json'
- */
-export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
-    
-
-
-/**
- * Reference to a field of type 'QueryMode'
- */
-export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
     
 
 
@@ -1230,6 +1437,8 @@ export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
   projectInvitation?: Prisma.ProjectInvitationOmit
   project?: Prisma.ProjectOmit
+  canvasNode?: Prisma.CanvasNodeOmit
+  canvasEdge?: Prisma.CanvasEdgeOmit
   userAccess?: Prisma.UserAccessOmit
   log?: Prisma.LogOmit
 }

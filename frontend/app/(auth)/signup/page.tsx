@@ -9,11 +9,14 @@ import { toast } from 'sonner';
 
 import { registerSchema, type RegisterSchema } from '@/schema/auth.schema';
 import { register as registerUser } from '@/API/auth.api';
+import { useAuthStore } from '@/store/auth.store';
+import { TOKEN_KEY } from '@/lib/constants';
 import { FormField } from '@/components/auth/form-field';
 import { GoogleButton } from '@/components/auth/google-button';
 
 export default function SignupPage() {
   const router = useRouter();
+  const { setUser, setToken } = useAuthStore();
 
   const {
     register,
@@ -26,8 +29,12 @@ export default function SignupPage() {
   const onSubmit = async (values: RegisterSchema) => {
     const result = await registerUser(values);
     if (result.success) {
-      toast.success('Account created! Please sign in.');
-      router.push('/login');
+      const { user, token } = result.response as { user: any; token: string };
+      setUser(user);
+      setToken(token);
+      localStorage.setItem(TOKEN_KEY, token);
+      toast.success('Account created! Welcome to Ligma.');
+      router.push('/projects');
     } else {
       toast.error(result.response as string);
     }

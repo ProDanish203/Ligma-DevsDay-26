@@ -54,6 +54,8 @@ export const ModelName = {
   User: 'User',
   ProjectInvitation: 'ProjectInvitation',
   Project: 'Project',
+  CanvasNode: 'CanvasNode',
+  CanvasEdge: 'CanvasEdge',
   UserAccess: 'UserAccess',
   Log: 'Log'
 } as const
@@ -122,6 +124,42 @@ export const ProjectScalarFieldEnum = {
 export type ProjectScalarFieldEnum = (typeof ProjectScalarFieldEnum)[keyof typeof ProjectScalarFieldEnum]
 
 
+export const CanvasNodeScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  type: 'type',
+  positionX: 'positionX',
+  positionY: 'positionY',
+  width: 'width',
+  height: 'height',
+  data: 'data',
+  createdById: 'createdById',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+} as const
+
+export type CanvasNodeScalarFieldEnum = (typeof CanvasNodeScalarFieldEnum)[keyof typeof CanvasNodeScalarFieldEnum]
+
+
+export const CanvasEdgeScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  sourceNodeId: 'sourceNodeId',
+  targetNodeId: 'targetNodeId',
+  sourceHandle: 'sourceHandle',
+  targetHandle: 'targetHandle',
+  label: 'label',
+  color: 'color',
+  createdById: 'createdById',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+} as const
+
+export type CanvasEdgeScalarFieldEnum = (typeof CanvasEdgeScalarFieldEnum)[keyof typeof CanvasEdgeScalarFieldEnum]
+
+
 export const UserAccessScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -159,6 +197,13 @@ export const SortOrder = {
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const NullableJsonNullValueInput = {
