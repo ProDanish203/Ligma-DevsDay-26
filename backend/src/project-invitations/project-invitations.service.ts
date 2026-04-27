@@ -204,11 +204,22 @@ export class ProjectInvitationsService {
 
       if (existingAccess) throw throwError('User already has access to this project', HttpStatus.BAD_REQUEST);
 
-      const invitation = await this.prismaService.projectInvitation.create({
-        data: {
+      const invitation = await this.prismaService.projectInvitation.upsert({
+        where: {
+          projectId_email: {
+            projectId: dto.projectId,
+            email: dto.email,
+          },
+        },
+        create: {
           email: dto.email,
           projectId: dto.projectId,
           accessLevel: dto.accessLevel,
+        },
+        update: {
+          accessLevel: dto.accessLevel,
+          status: InvitationStatus.PENDING,
+          deletedAt: null,
         },
         select: projectInvitationSelect,
       });
