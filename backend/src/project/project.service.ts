@@ -7,7 +7,7 @@ import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { UpdateProjectMemberDto } from './dto/update-project-member.dto';
 import { ProjectSelect, projectSelect } from './queries';
-import { GetAllProjectResponse, GetProjectMembersResponse, ProjectWithMyAccess } from './types';
+import { DashboardStatsResponse, GetAllProjectResponse, GetProjectMembersResponse, ProjectWithMyAccess } from './types';
 import { LogsService } from '../logs/logs.service';
 
 @Injectable()
@@ -398,6 +398,74 @@ export class ProjectService {
         err.message || 'Failed to retrieve project members',
         err.status || HttpStatus.INTERNAL_SERVER_ERROR,
       );
+    }
+  }
+
+  async getDashboardStats(user: User): Promise<ApiResponse<DashboardStatsResponse>> {
+    try {
+      const sharedIds = await this.accessibleSharedProjectIds(user.id);
+      const orClause: Prisma.ProjectWhereInput[] = [{ userId: user.id }];
+      if (sharedIds.length) {
+        orClause.push({ id: { in: sharedIds } });
+      }
+      const where: Prisma.ProjectWhereInput = { deletedAt: null, OR: orClause };
+
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const [totalProjects, thisMonth, allProjectIds, recentProjects] = await Promise.all([
+        this.prismaService.project.count({ where }),
+        this.prismaService.project.count({ where: { ...where, createdAt: { gte: startOfMonth } } }),
+        this.prismaService.project.findMany({ where, select: { id: true } }).then((rows) => rows.map((r) => r.id)),
+        this.prismaService.project.findMany({
+          where,
+          orderBy: { updatedAt: 'desc' },
+          take: 4,
+          select: { id: true, name: true, updatedAt: true },
+        }),
+      ]);
+
+      const [uniqueMembers, memberRows] = await Promise.all([
+        this.prismaService.userAccess.groupBy({
+          by: ['userId'],
+          where: { entityId: { in: allProjectIds }, entityType: UserAccessType.PROJECT, deletedAt: null },
+        }),
+        this.prismaService.userAccess.findMany({
+          where: {
+            entityId: { in: recentProjects.map((p) => p.id) },
+            entityType: UserAccessType.PROJECT,
+            deletedAt: null,
+          },
+          select: { entityId: true, user: { select: { name: true } } },
+        }),
+      ]);
+
+      const membersByProject = new Map<string, string[]>();
+      for (const row of memberRows) {
+        const list = membersByProject.get(row.entityId) ?? [];
+        list.push(row.user.name);
+        membersByProject.set(row.entityId, list);
+      }
+
+      return {
+        message: 'Dashboard stats retrieved successfully',
+        success: true,
+        data: {
+          totalProjects,
+          totalMembers: uniqueMembers.length,
+          sharedWithMe: sharedIds.length,
+          thisMonth,
+          recentProjects: recentProjects.map((p) => ({
+            id: p.id,
+            name: p.name,
+            updatedAt: p.updatedAt,
+            collaborators: membersByProject.get(p.id) ?? [],
+          })),
+        },
+      };
+    } catch (err: any) {
+      throw throwError(err.message || 'Failed to retrieve dashboard stats', err.status || HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 

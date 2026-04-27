@@ -44,6 +44,16 @@ export class ProjectController {
 
   @Roles(...Object.values(UserRole))
   @ApiProperty({
+    title: 'Get Dashboard Stats',
+    description: 'Aggregate stats and recent projects for the dashboard',
+  })
+  @Get('dashboard-stats')
+  async getDashboardStats(@CurrentUser() user: User) {
+    return this.projectService.getDashboardStats(user);
+  }
+
+  @Roles(...Object.values(UserRole))
+  @ApiProperty({
     title: 'Get Project Members',
     description: 'List project owner and members with access levels',
   })

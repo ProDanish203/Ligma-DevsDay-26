@@ -97,6 +97,21 @@ export const getProjectMembers = async (projectId: string) => {
   }
 };
 
+export const getDashboardStats = async () => {
+  try {
+    const { data } = await api.get('/project/dashboard-stats', { withCredentials: true });
+    if (data?.success) {
+      return { success: true, response: data.data };
+    }
+    return { success: false, response: data?.message || 'Failed to get dashboard stats' };
+  } catch (error) {
+    if (error instanceof AxiosError) {
+      return { success: false, response: error.response?.data?.message || 'Failed to get dashboard stats' };
+    }
+    return { success: false, response: 'Failed to get dashboard stats' };
+  }
+};
+
 export const updateProjectMemberAccess = async (
   projectId: string,
   userAccessId: string,
