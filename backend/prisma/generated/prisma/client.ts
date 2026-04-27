@@ -44,3 +44,23 @@ export { Prisma }
  * 
  */
 export type User = Prisma.UserModel
+/**
+ * Model ProjectInvitation
+ * 
+ */
+export type ProjectInvitation = Prisma.ProjectInvitationModel
+/**
+ * Model Project
+ * 
+ */
+export type Project = Prisma.ProjectModel
+/**
+ * Model UserAccess
+ * 
+ */
+export type UserAccess = Prisma.UserAccessModel
+/**
+ * Model Log
+ * 
+ */
+export type Log = Prisma.LogModel

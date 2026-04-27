@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { ProjectModule } from './project/project.module';
 import { ProjectInvitationsModule } from './project-invitations/project-invitations.module';
+import { LogsModule } from './logs/logs.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { ProjectInvitationsModule } from './project-invitations/project-invitati
     UserModule,
     ProjectModule,
     ProjectInvitationsModule,
+    LogsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

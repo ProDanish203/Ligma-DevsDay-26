@@ -23,3 +23,58 @@ export const LoginProvider = {
 } as const
 
 export type LoginProvider = (typeof LoginProvider)[keyof typeof LoginProvider]
+
+
+export const InvitationStatus = {
+  PENDING: 'PENDING',
+  ACCEPTED: 'ACCEPTED',
+  REJECTED: 'REJECTED'
+} as const
+
+export type InvitationStatus = (typeof InvitationStatus)[keyof typeof InvitationStatus]
+
+
+export const ProjectVisibility = {
+  PUBLIC: 'PUBLIC',
+  PRIVATE: 'PRIVATE'
+} as const
+
+export type ProjectVisibility = (typeof ProjectVisibility)[keyof typeof ProjectVisibility]
+
+
+export const UserAccessLevel = {
+  VIEWER: 'VIEWER',
+  EDITOR: 'EDITOR',
+  COMMENTATOR: 'COMMENTATOR',
+  LEAD: 'LEAD'
+} as const
+
+export type UserAccessLevel = (typeof UserAccessLevel)[keyof typeof UserAccessLevel]
+
+
+export const UserAccessType = {
+  PROJECT: 'PROJECT',
+  NODE: 'NODE'
+} as const
+
+export type UserAccessType = (typeof UserAccessType)[keyof typeof UserAccessType]
+
+
+export const LogLevel = {
+  INFO: 'INFO',
+  WARN: 'WARN',
+  ERROR: 'ERROR'
+} as const
+
+export type LogLevel = (typeof LogLevel)[keyof typeof LogLevel]
+
+
+export const LogEntityType = {
+  PROJECT: 'PROJECT',
+  NODE: 'NODE',
+  PROJECT_INVITATION: 'PROJECT_INVITATION',
+  USER_ACCESS: 'USER_ACCESS',
+  USER: 'USER'
+} as const
+
+export type LogEntityType = (typeof LogEntityType)[keyof typeof LogEntityType]
