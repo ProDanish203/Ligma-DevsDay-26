@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, FolderOpen, Settings, ChevronLeft, ChevronRight, Mail } from 'lucide-react';
+import { LayoutDashboard, FolderOpen, Settings, ChevronLeft, ChevronRight, Mail, MousePointer2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
   { href: '/', icon: LayoutDashboard, label: 'Dashboard', exact: true },
   { href: '/projects', icon: FolderOpen, label: 'Projects', exact: false },
   { href: '/invitations', icon: Mail, label: 'Invitations', exact: false },
+  { href: '/collab-demo', icon: MousePointer2, label: 'Live Cursors', exact: false },
 ];
 
 const BOTTOM_ITEMS = [{ href: '/settings', icon: Settings, label: 'Settings', exact: false }];
