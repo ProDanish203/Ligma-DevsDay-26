@@ -29,3 +29,18 @@ export interface GetProjectMembersResponse {
   owner: ProjectOwnerSummary;
   members: ProjectMemberRow[];
 }
+
+export interface DashboardRecentProject {
+  id: string;
+  name: string;
+  updatedAt: Date;
+  collaborators: string[];
+}
+
+export interface DashboardStatsResponse {
+  totalProjects: number;
+  totalMembers: number;
+  sharedWithMe: number;
+  thisMonth: number;
+  recentProjects: DashboardRecentProject[];
+}

@@ -44,6 +44,16 @@ export class ProjectController {
 
   @Roles(...Object.values(UserRole))
   @ApiProperty({
+    title: 'Get Dashboard Stats',
+    description: 'Aggregate stats and recent projects for the dashboard',
+  })
+  @Get('dashboard-stats')
+  async getDashboardStats(@CurrentUser() user: User) {
+    return this.projectService.getDashboardStats(user);
+  }
+
+  @Roles(...Object.values(UserRole))
+  @ApiProperty({
     title: 'Get Project Members',
     description: 'List project owner and members with access levels',
   })
@@ -66,6 +76,20 @@ export class ProjectController {
     @Body() dto: UpdateProjectMemberDto,
   ) {
     return this.projectService.updateProjectMemberAccess(user, projectId, userAccessId, dto);
+  }
+
+  @Roles(...Object.values(UserRole))
+  @ApiProperty({
+    title: 'Remove Project Member',
+    description: 'Remove a member from a project (owner only)',
+  })
+  @Delete(':projectId/members/:userAccessId')
+  async removeProjectMember(
+    @CurrentUser() user: User,
+    @Param('projectId') projectId: string,
+    @Param('userAccessId') userAccessId: string,
+  ) {
+    return this.projectService.removeProjectMember(user, projectId, userAccessId);
   }
 
   @Roles(...Object.values(UserRole))
