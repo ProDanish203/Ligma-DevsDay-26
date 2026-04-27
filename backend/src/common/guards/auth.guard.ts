@@ -1,46 +1,34 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { Request } from 'express';
-import { PrismaService } from '../services/prisma.service';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import { UserRole } from '@db';
-import { JwtService } from '@nestjs/jwt';
+import { AuthService } from 'src/auth/auth.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
-    private readonly prisma: PrismaService,
     private readonly reflector: Reflector,
-    private readonly jwtService: JwtService,
-  ) {}
+    private readonly authService: AuthService
+  ) { }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
     const token = this.extractToken(request);
-
     if (!token) throw new UnauthorizedException('Unauthorized Access');
 
     try {
-      const payload = (await this.jwtService.verifyAsync(token, {
-        secret: process.env.JWT_SECRET as string,
-      })) as any;
-
-      const user = await this.prisma.user.findUnique({
-        where: { id: payload.id },
-        select: { id: true, role: true, email: true, name: true },
-      });
+      const user = await this.authService.verifyTokenAndGetUser(token);
       if (!user) throw new UnauthorizedException('Unauthorized Access');
 
       const roles = this.reflector.get<UserRole[]>(ROLES_KEY, context.getHandler());
-
-      if (roles && !roles.includes(user.role as UserRole)) throw new ForbiddenException('Forbidden Access');
+      if (roles && !roles.includes(user.role as UserRole))
+        throw new ForbiddenException('Forbidden Access');
 
       (request as any).user = user;
-
       return true;
-    } catch (error) {
-      console.error('Error verifying token:', error);
-      throw new UnauthorizedException(error.message || 'Unauthorized Access');
+    } catch (error: unknown) {
+      throw new UnauthorizedException(error instanceof Error ? error.message : 'Unauthorized Access');
     }
   }
 
