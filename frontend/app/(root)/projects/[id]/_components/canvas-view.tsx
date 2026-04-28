@@ -32,6 +32,8 @@ import { ShapeNode } from './nodes/shape-node';
 import { DrawNode } from './nodes/draw-node';
 import { CursorOverlay } from './cursor-overlay';
 import { CanvasToolbar, type ToolMode } from './canvas-toolbar';
+import { LogPanel } from './log-panel';
+import { NodePermissionsModal } from './node-permissions-modal';
 import { Loader2, Wifi, WifiOff, AlertTriangle } from 'lucide-react';
 
 const nodeTypes = { sticky: StickyNode, shape: ShapeNode, draw: DrawNode };
@@ -39,6 +41,8 @@ const nodeTypes = { sticky: StickyNode, shape: ShapeNode, draw: DrawNode };
 function dbNodeToFlow(
   dbNode: CanvasNodeSchema,
   onUpdate: (nodeId: string, data: any) => void,
+  canEdit: boolean,
+  onManagePermissions: (nodeId: string) => void,
   onResize: (nodeId: string, params: { x: number; y: number; width: number; height: number }) => void,
 ): Node {
   return {
@@ -46,7 +50,7 @@ function dbNodeToFlow(
     type: dbNode.type,
     position: { x: dbNode.positionX, y: dbNode.positionY },
     style: { width: dbNode.width, height: dbNode.height },
-    data: { ...(dbNode.data as object), onUpdate, onResize },
+    data: { ...(dbNode.data as object), onUpdate, canEdit, onManagePermissions, onResize },
   };
 }
 
@@ -121,10 +125,10 @@ function CanvasLoadingSkeleton() {
 
 /* ------------------------------------------------------------------ */
 /* Inner canvas — only mounts when data is ready                       */
-/* Receives socket data via props to guarantee non-empty initial state */
 /* ------------------------------------------------------------------ */
 
 interface CanvasInnerProps {
+  projectId: string;
   dbNodes: CanvasNodeSchema[];
   dbEdges: CanvasEdgeSchema[];
   remoteUsers: RemoteUser[];
@@ -155,9 +159,16 @@ interface CanvasInnerProps {
     targetHandle?: string;
   }) => void;
   deleteEdge: (edgeId: string) => void;
+  canEditNode: (nodeId: string, createdById: string) => boolean;
+  canManageNodeAccess: (nodeId: string, createdById: string) => boolean;
+  nodeAccesses: Record<string, import('@/schema/canvas.schema').NodeAccessEntrySchema[]>;
+  recentLogs: import('@/schema/logs.schema').LogSchema[];
+  grantNodeAccess: (nodeId: string, userId: string, accessLevel: import('@/lib/enums').UserAccessLevel) => void;
+  revokeNodeAccess: (nodeId: string, accessId: string) => void;
 }
 
 function CanvasInner({
+  projectId,
   dbNodes,
   dbEdges,
   remoteUsers,
@@ -169,9 +180,18 @@ function CanvasInner({
   deleteNode,
   createEdge,
   deleteEdge,
+  canEditNode,
+  canManageNodeAccess,
+  nodeAccesses,
+  recentLogs,
+  grantNodeAccess,
+  revokeNodeAccess,
 }: CanvasInnerProps) {
   const { screenToFlowPosition, fitView } = useReactFlow();
   const [toolMode, setToolMode] = useState<ToolMode>('select');
+  const [logPanelOpen, setLogPanelOpen] = useState(false);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [permissionsNodeId, setPermissionsNodeId] = useState<string | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [screenDrawPoints, setScreenDrawPoints] = useState<number[]>([]);
   const drawOverlayRef = useRef<HTMLDivElement>(null);
@@ -183,24 +203,31 @@ function CanvasInner({
     updateNodeRef.current({ nodeId, data });
   }, []);
 
-  const stableOnResize = useCallback(
-    (nodeId: string, params: { x: number; y: number; width: number; height: number }) => {
-      updateNodeRef.current({
-        nodeId,
-        positionX: params.x,
-        positionY: params.y,
-        width: params.width,
-        height: params.height,
-      });
-    },
-    [],
-  );
+  const onManagePermissionsRef = useRef((nodeId: string) => setPermissionsNodeId(nodeId));
+  const stableOnManagePermissions = useCallback((nodeId: string) => {
+    onManagePermissionsRef.current(nodeId);
+  }, []);
+
+  // Build a lookup: nodeId → createdById (for permission checks)
+  const nodeCreatorMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const n of dbNodes) map[n.id] = n.createdById;
+    return map;
+  }, [dbNodes]);
+
+  const stableOnResize = useCallback((nodeId: string, params: { x: number; y: number; width: number; height: number }) => {
+    updateNodeRef.current({
+      nodeId,
+      positionX: params.x,
+      positionY: params.y,
+      width: params.width,
+      height: params.height,
+    });
+  }, []);
 
   // ── Initialize local state from the already-available data ──────────
-  // Because CanvasInner only mounts after initialLoadDone=true, dbNodes
-  // already contains the server data. No empty-frame flash.
   const initialFlowNodes = useMemo(
-    () => dbNodes.map((n) => dbNodeToFlow(n, stableOnUpdate, stableOnResize)),
+    () => dbNodes.map((n) => dbNodeToFlow(n, stableOnUpdate, canEditNode(n.id, n.createdById), stableOnManagePermissions, stableOnResize)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [], // compute once on mount
   );
@@ -213,11 +240,10 @@ function CanvasInner({
   const [nodes, setNodes, onNodesChangeLocal] = useNodesState<Node>(initialFlowNodes);
   const [edges, setEdges, onEdgesChangeLocal] = useEdgesState<Edge>(initialFlowEdges);
 
-  // Track whether the initial seed has been consumed so we skip the first effect run
   const isNodesSeeded = useRef(true);
   const isEdgesSeeded = useRef(true);
 
-  // Fit view once after mount (nodes are already in state, just need a frame for layout)
+  // Fit view once after mount
   const hasFittedRef = useRef(false);
   useEffect(() => {
     if (!hasFittedRef.current && initialFlowNodes.length > 0) {
@@ -230,9 +256,8 @@ function CanvasInner({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Sync subsequent DB changes → local ReactFlow state ──────────────
+  // ── Sync DB nodes → local ReactFlow state ────────────────────────────
   useEffect(() => {
-    // Skip the very first run — we already seeded from useMemo
     if (isNodesSeeded.current) {
       isNodesSeeded.current = false;
       return;
@@ -241,11 +266,10 @@ function CanvasInner({
       const draggingIds = new Set(prev.filter((n) => n.dragging).map((n) => n.id));
       const next = dbNodes.map((dbNode) => {
         if (draggingIds.has(dbNode.id)) {
-          return prev.find((n) => n.id === dbNode.id) ?? dbNodeToFlow(dbNode, stableOnUpdate, stableOnResize);
+          return prev.find((n) => n.id === dbNode.id) ?? dbNodeToFlow(dbNode, stableOnUpdate, canEditNode(dbNode.id, dbNode.createdById), stableOnManagePermissions, stableOnResize);
         }
-        return dbNodeToFlow(dbNode, stableOnUpdate, stableOnResize);
+        return dbNodeToFlow(dbNode, stableOnUpdate, canEditNode(dbNode.id, dbNode.createdById), stableOnManagePermissions, stableOnResize);
       });
-      // Avoid replacing the array if nothing meaningful changed
       if (prev.length === next.length && prev.every((n, i) => n.id === next[i].id)) {
         // Check if positions/dimensions actually changed
         const changed = next.some((n, i) => {
@@ -271,7 +295,6 @@ function CanvasInner({
     }
     setEdges((prev) => {
       const next = dbEdges.map(dbEdgeToFlow);
-      // Skip if same edge IDs in same order — avoids unnecessary ReactFlow re-render
       if (prev.length === next.length && prev.every((e, i) => e.id === next[i].id)) {
         return prev;
       }
@@ -300,6 +323,19 @@ function CanvasInner({
             updateNode({ nodeId: c.id, positionX: c.position.x, positionY: c.position.y });
           }
         }
+        if (change.type === 'dimensions') {
+          const c = change as NodeDimensionChange;
+          if (!c.resizing && c.dimensions) {
+            updateNode({ nodeId: c.id, width: c.dimensions.width, height: c.dimensions.height });
+          }
+        }
+        if (change.type === 'select') {
+          if (change.selected) {
+            setSelectedNodeId(change.id);
+          } else {
+            setSelectedNodeId((prev) => (prev === change.id ? null : prev));
+          }
+        }
       }
     },
     [onNodesChangeLocal, updateNode],
@@ -312,28 +348,25 @@ function CanvasInner({
     [onEdgesChangeLocal],
   );
 
-  const onConnect = useCallback(
-    (connection: Connection) => {
-      setEdges((eds) =>
-        addEdge(
-          {
-            ...connection,
-            type: 'smoothstep',
-            markerEnd: { type: MarkerType.ArrowClosed, color: '#374151' },
-            style: { stroke: '#374151', strokeWidth: 2 },
-          },
-          eds,
-        ),
-      );
-      createEdge({
-        sourceNodeId: connection.source,
-        targetNodeId: connection.target,
-        sourceHandle: connection.sourceHandle ?? undefined,
-        targetHandle: connection.targetHandle ?? undefined,
-      });
-    },
-    [setEdges, createEdge],
-  );
+  const onConnect = useCallback((connection: Connection) => {
+    setEdges((eds) =>
+      addEdge(
+        {
+          ...connection,
+          type: 'smoothstep',
+          markerEnd: { type: MarkerType.ArrowClosed, color: '#374151' },
+          style: { stroke: '#374151', strokeWidth: 2 },
+        },
+        eds,
+      ),
+    );
+    createEdge({
+      sourceNodeId: connection.source,
+      targetNodeId: connection.target,
+      sourceHandle: connection.sourceHandle ?? undefined,
+      targetHandle: connection.targetHandle ?? undefined,
+    });
+  }, [setEdges, createEdge]);
 
   const onEdgesDelete = useCallback(
     (deleted: Edge[]) => {
@@ -448,6 +481,17 @@ function CanvasInner({
 
   const cursorClass = toolMode !== 'select' ? 'canvas-crosshair' : '';
 
+  const selectedNodeCreatedById = selectedNodeId ? nodeCreatorMap[selectedNodeId] ?? '' : '';
+  const canManageSelected = selectedNodeId
+    ? canManageNodeAccess(selectedNodeId, selectedNodeCreatedById)
+    : false;
+
+  const permissionsNodeAccesses = permissionsNodeId ? (nodeAccesses[permissionsNodeId] ?? []) : [];
+  const permissionsNodeCreatedById = permissionsNodeId ? nodeCreatorMap[permissionsNodeId] ?? '' : '';
+  const canManagePermissionsNode = permissionsNodeId
+    ? canManageNodeAccess(permissionsNodeId, permissionsNodeCreatedById)
+    : false;
+
   return (
     <div className={`relative h-full w-full ${cursorClass}`} onMouseMove={onMouseMove}>
       <ReactFlow
@@ -479,7 +523,33 @@ function CanvasInner({
       </ReactFlow>
 
       <ConnectionBadge status={status} />
-      <CanvasToolbar toolMode={toolMode} onToolChange={setToolMode} />
+      <CanvasToolbar
+        toolMode={toolMode}
+        onToolChange={setToolMode}
+        logPanelOpen={logPanelOpen}
+        onToggleLogPanel={() => setLogPanelOpen((v) => !v)}
+        selectedNodeId={selectedNodeId}
+        canManageSelectedNode={canManageSelected}
+        onOpenPermissions={() => setPermissionsNodeId(selectedNodeId)}
+      />
+
+      <LogPanel
+        projectId={projectId}
+        selectedNodeId={selectedNodeId}
+        recentLogs={recentLogs}
+        isOpen={logPanelOpen}
+        onClose={() => setLogPanelOpen(false)}
+      />
+
+      <NodePermissionsModal
+        nodeId={permissionsNodeId}
+        projectId={projectId}
+        accesses={permissionsNodeAccesses}
+        canManage={canManagePermissionsNode}
+        onGrant={grantNodeAccess}
+        onRevoke={revokeNodeAccess}
+        onClose={() => setPermissionsNodeId(null)}
+      />
 
       {toolMode === 'draw' && (
         <div
@@ -513,7 +583,7 @@ function CanvasInner({
           )}
         </div>
       )}
-    </div>
+    </div >
   );
 }
 
@@ -528,17 +598,20 @@ export function CanvasView({ projectId, user }: { projectId: string; user: Remot
     cursors,
     status,
     initialLoadDone,
+    nodeAccesses,
+    recentLogs,
     emitCursorMove,
     createNode,
     updateNode,
     deleteNode,
     createEdge,
     deleteEdge,
+    canEditNode,
+    canManageNodeAccess,
+    grantNodeAccess,
+    revokeNodeAccess,
   } = useCanvasSocket({ projectId, user });
 
-  // Don't mount ReactFlowProvider or CanvasInner until the initial
-  // canvas:state has arrived — this ensures CanvasInner's useNodesState
-  // is seeded with real data on its very first render. No empty frame.
   if (!initialLoadDone) {
     return (
       <div className="h-full w-full overflow-hidden">
@@ -551,6 +624,7 @@ export function CanvasView({ projectId, user }: { projectId: string; user: Remot
     <div className="h-full w-full overflow-hidden">
       <ReactFlowProvider>
         <CanvasInner
+          projectId={projectId}
           dbNodes={nodes}
           dbEdges={edges}
           remoteUsers={remoteUsers}
@@ -562,6 +636,12 @@ export function CanvasView({ projectId, user }: { projectId: string; user: Remot
           deleteNode={deleteNode}
           createEdge={createEdge}
           deleteEdge={deleteEdge}
+          canEditNode={canEditNode}
+          canManageNodeAccess={canManageNodeAccess}
+          nodeAccesses={nodeAccesses}
+          recentLogs={recentLogs}
+          grantNodeAccess={grantNodeAccess}
+          revokeNodeAccess={revokeNodeAccess}
         />
       </ReactFlowProvider>
     </div>
