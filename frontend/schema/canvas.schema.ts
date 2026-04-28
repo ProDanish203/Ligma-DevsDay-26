@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { UserAccessLevel } from '@/lib/enums';
 
 export const canvasNodeDataSchema = z.object({
   label: z.string(),
@@ -39,3 +40,13 @@ export const canvasEdgeSchema = z.object({
 });
 
 export type CanvasEdgeSchema = z.infer<typeof canvasEdgeSchema>;
+
+export const nodeAccessEntrySchema = z.object({
+  id: z.string().uuid(),
+  userId: z.string().uuid(),
+  entityId: z.string().uuid(),
+  accessLevel: z.nativeEnum(UserAccessLevel),
+  user: z.object({ id: z.string(), name: z.string(), email: z.string() }),
+});
+
+export type NodeAccessEntrySchema = z.infer<typeof nodeAccessEntrySchema>;

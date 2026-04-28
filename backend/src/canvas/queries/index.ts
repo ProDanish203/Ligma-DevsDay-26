@@ -1,5 +1,17 @@
 import { Prisma } from '@db';
 
+export const nodeAccessSelect = {
+  id: true,
+  userId: true,
+  entityId: true,
+  accessLevel: true,
+  user: { select: { id: true, name: true, email: true } },
+} satisfies Prisma.UserAccessSelect;
+
+export type NodeAccessSelect = Prisma.UserAccessGetPayload<{
+  select: typeof nodeAccessSelect;
+}>;
+
 export const canvasNodeSelect = {
   id: true,
   projectId: true,

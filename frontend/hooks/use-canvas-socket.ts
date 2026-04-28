@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { TOKEN_KEY } from '@/lib/constants';
-import type { CanvasNodeSchema, CanvasEdgeSchema } from '@/schema/canvas.schema';
+import { UserAccessLevel } from '@/lib/enums';
+import type { CanvasNodeSchema, CanvasEdgeSchema, NodeAccessEntrySchema } from '@/schema/canvas.schema';
+import type { LogSchema } from '@/schema/logs.schema';
 
 export interface RemoteUser {
   id: string;
@@ -13,6 +15,8 @@ export interface RemoteUser {
 
 export type CanvasConnectionStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected' | 'error';
 
+export type MyProjectAccess = 'OWNER' | UserAccessLevel | null;
+
 export function useCanvasSocket({ projectId, user }: { projectId: string; user: RemoteUser | null }) {
   const [nodes, setNodes] = useState<CanvasNodeSchema[]>([]);
   const [edges, setEdges] = useState<CanvasEdgeSchema[]>([]);
@@ -20,6 +24,9 @@ export function useCanvasSocket({ projectId, user }: { projectId: string; user: 
   const [cursors, setCursors] = useState<Map<string, { x: number; y: number }>>(new Map());
   const [status, setStatus] = useState<CanvasConnectionStatus>('connecting');
   const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const [nodeAccesses, setNodeAccesses] = useState<Record<string, NodeAccessEntrySchema[]>>({});
+  const [myProjectAccess, setMyProjectAccess] = useState<MyProjectAccess>(null);
+  const [recentLogs, setRecentLogs] = useState<LogSchema[]>([]);
 
   const socketRef = useRef<Socket | null>(null);
   const lastEmitRef = useRef<number>(0);
@@ -93,12 +100,26 @@ export function useCanvasSocket({ projectId, user }: { projectId: string; user: 
 
     // ── Canvas data events ────────────────────────────────────────────
 
-    socket.on('canvas:state', ({ nodes: n, edges: e, users }: { nodes: CanvasNodeSchema[]; edges: CanvasEdgeSchema[]; users: RemoteUser[] }) => {
+    socket.on('canvas:state', ({
+      nodes: n,
+      edges: e,
+      users,
+      nodeAccesses: na,
+      myProjectAccess: mpa,
+    }: {
+      nodes: CanvasNodeSchema[];
+      edges: CanvasEdgeSchema[];
+      users: RemoteUser[];
+      nodeAccesses?: Record<string, NodeAccessEntrySchema[]>;
+      myProjectAccess?: MyProjectAccess;
+    }) => {
       if (!alive) return;
       const currentUser = userRef.current;
       setNodes(n);
       setEdges(e);
       setRemoteUsers(users.filter((u) => u.id !== currentUser?.id));
+      setNodeAccesses(na ?? {});
+      setMyProjectAccess(mpa ?? null);
       setInitialLoadDone(true);
     });
 
@@ -137,6 +158,11 @@ export function useCanvasSocket({ projectId, user }: { projectId: string; user: 
     socket.on('canvas:node-deleted', ({ nodeId }: { nodeId: string }) => {
       if (!alive) return;
       setNodes((prev) => prev.filter((n) => n.id !== nodeId));
+      setNodeAccesses((prev) => {
+        const next = { ...prev };
+        delete next[nodeId];
+        return next;
+      });
     });
 
     socket.on('canvas:edge-added', (edge: CanvasEdgeSchema) => {
@@ -147,6 +173,16 @@ export function useCanvasSocket({ projectId, user }: { projectId: string; user: 
     socket.on('canvas:edge-deleted', ({ edgeId }: { edgeId: string }) => {
       if (!alive) return;
       setEdges((prev) => prev.filter((e) => e.id !== edgeId));
+    });
+
+    socket.on('canvas:node-access-updated', ({ nodeId, accesses }: { nodeId: string; accesses: NodeAccessEntrySchema[] }) => {
+      if (!alive) return;
+      setNodeAccesses((prev) => ({ ...prev, [nodeId]: accesses }));
+    });
+
+    socket.on('canvas:log-added', (log: LogSchema) => {
+      if (!alive) return;
+      setRecentLogs((prev) => [log, ...prev].slice(0, 200));
     });
 
     return () => {
@@ -185,7 +221,8 @@ export function useCanvasSocket({ projectId, user }: { projectId: string; user: 
   }, [projectId]);
 
   const deleteNode = useCallback((nodeId: string) => {
-    setNodes((prev) => prev.filter((n) => n.id !== nodeId));
+    // No optimistic removal — let canvas:node-deleted broadcast drive the UI
+    // so we can cleanly revert if the server denies the operation (RBAC).
     socketRef.current?.emit('canvas:node-delete', { projectId, nodeId });
   }, [projectId]);
 
@@ -201,9 +238,43 @@ export function useCanvasSocket({ projectId, user }: { projectId: string; user: 
     socketRef.current?.emit('canvas:edge-delete', { projectId, edgeId });
   }, [projectId]);
 
+  const grantNodeAccess = useCallback((nodeId: string, targetUserId: string, accessLevel: UserAccessLevel) => {
+    socketRef.current?.emit('canvas:node-access-grant', { projectId, nodeId, userId: targetUserId, accessLevel });
+  }, [projectId]);
+
+  const revokeNodeAccess = useCallback((nodeId: string, accessId: string) => {
+    socketRef.current?.emit('canvas:node-access-revoke', { projectId, nodeId, accessId });
+  }, [projectId]);
+
+  // Compute whether the current user can edit a given node
+  const canEditNode = useCallback((nodeId: string, createdById: string): boolean => {
+    if (!userId) return false;
+    if (myProjectAccess === 'OWNER' || myProjectAccess === UserAccessLevel.LEAD) return true;
+    if (userId === createdById) return true;
+
+    const acl = nodeAccesses[nodeId] ?? [];
+    if (acl.length === 0) {
+      return myProjectAccess === UserAccessLevel.EDITOR;
+    }
+    const myEntry = acl.find((e) => e.userId === userId);
+    if (!myEntry) return false;
+    return myEntry.accessLevel === UserAccessLevel.EDITOR || myEntry.accessLevel === UserAccessLevel.LEAD;
+  }, [userId, myProjectAccess, nodeAccesses]);
+
+  const canManageNodeAccess = useCallback((nodeId: string, createdById: string): boolean => {
+    if (!userId) return false;
+    if (myProjectAccess === 'OWNER' || myProjectAccess === UserAccessLevel.LEAD) return true;
+    if (userId === createdById) return true;
+    const acl = nodeAccesses[nodeId] ?? [];
+    const myEntry = acl.find((e) => e.userId === userId);
+    return myEntry?.accessLevel === UserAccessLevel.LEAD;
+  }, [userId, myProjectAccess, nodeAccesses]);
+
   return {
     nodes, edges, remoteUsers, cursors,
     status, initialLoadDone,
+    nodeAccesses, myProjectAccess, recentLogs,
     emitCursorMove, createNode, updateNode, deleteNode, createEdge, deleteEdge,
+    grantNodeAccess, revokeNodeAccess, canEditNode, canManageNodeAccess,
   };
 }

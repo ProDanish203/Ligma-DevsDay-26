@@ -10,9 +10,21 @@ import {
 import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
+import { LogEntityType } from '@db';
 import { PrismaService } from '../common/services/prisma.service';
+import { LogsService } from '../logs/logs.service';
 import { CanvasService } from './canvas.service';
-import { JoinCanvasDto, CursorMoveDto, AddNodeDto, UpdateNodeDto, DeleteNodeDto, AddEdgeDto, DeleteEdgeDto } from './dto/canvas.dto';
+import {
+  JoinCanvasDto,
+  CursorMoveDto,
+  AddNodeDto,
+  UpdateNodeDto,
+  DeleteNodeDto,
+  AddEdgeDto,
+  DeleteEdgeDto,
+  GrantNodeAccessDto,
+  RevokeNodeAccessDto,
+} from './dto/canvas.dto';
 import { CanvasUser, CursorPosition } from './types';
 
 interface RoomUser {
@@ -37,6 +49,7 @@ export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
     private readonly canvasService: CanvasService,
+    private readonly logsService: LogsService,
   ) {}
 
   async handleConnection(client: Socket) {
@@ -99,6 +112,13 @@ export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     const { projectId } = dto;
 
+    // Verify the user is a member of this project
+    const myProjectAccess = await this.canvasService.getMyProjectAccess(user.id, projectId);
+    if (!myProjectAccess) {
+      client.emit('canvas:error', { message: 'Not a project member' });
+      return;
+    }
+
     // Leave any existing rooms first (handles reconnect/re-join without stale data)
     this.rooms.forEach((roomUsers, existingProjectId) => {
       if (roomUsers.has(client.id)) {
@@ -123,9 +143,10 @@ export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect {
     roomUsers.set(client.id, { user, cursor: { x: 0, y: 0 } });
 
     try {
-      const [nodesResult, edgesResult] = await Promise.all([
+      const [nodesResult, edgesResult, nodeAccesses] = await Promise.all([
         this.canvasService.getCanvasNodes(projectId),
         this.canvasService.getCanvasEdges(projectId),
+        this.canvasService.getNodeAccessesForProject(projectId),
       ]);
 
       if (!client.connected) return;
@@ -134,6 +155,8 @@ export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect {
         nodes: nodesResult.data ?? [],
         edges: edgesResult.data ?? [],
         users: Array.from(roomUsers.values()).map((u) => u.user),
+        nodeAccesses,
+        myProjectAccess,
       });
     } catch (error) {
       this.logger.error(`Failed to load canvas state for project ${projectId}`, error);
@@ -141,6 +164,8 @@ export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect {
         nodes: [],
         edges: [],
         users: Array.from(roomUsers.values()).map((u) => u.user),
+        nodeAccesses: {},
+        myProjectAccess,
       });
     }
 
@@ -196,6 +221,17 @@ export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const result = await this.canvasService.addNode(user.id, dto);
       this.server.to(dto.projectId).emit('canvas:node-added', result.data);
+
+      const node = result.data!;
+      const log = await this.logsService.createLog({
+        action: 'NODE_ADDED',
+        message: `${user.name} added a new node`,
+        entityType: LogEntityType.PROJECT,
+        entityId: dto.projectId,
+        actorUserId: user.id,
+        metadata: { nodeId: node.id, nodeType: node.type },
+      });
+      if (log) this.server.to(dto.projectId).emit('canvas:log-added', log);
     } catch (error) {
       client.emit('canvas:error', { message: 'Failed to add node' });
     }
@@ -207,8 +243,37 @@ export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!user) return;
 
     try {
+      const allowed = await this.canvasService.canUserMutateNode(user.id, dto.nodeId, dto.projectId, 'update');
+      if (!allowed) {
+        client.emit('canvas:error', { message: 'Permission denied: cannot edit this node' });
+        return;
+      }
+
       const result = await this.canvasService.updateNode(user.id, dto);
       this.server.to(dto.projectId).emit('canvas:node-updated', result.data);
+
+      // Only log data changes (not position/dimension moves to avoid log spam)
+      if (dto.data !== undefined) {
+        const log = await this.logsService.createLog({
+          action: 'NODE_UPDATED',
+          message: `${user.name} updated node content`,
+          entityType: LogEntityType.NODE,
+          entityId: dto.nodeId,
+          actorUserId: user.id,
+          metadata: { projectId: dto.projectId },
+        });
+        if (log) this.server.to(dto.projectId).emit('canvas:log-added', log);
+
+        // Also log to project stream
+        this.logsService.createLog({
+          action: 'NODE_UPDATED',
+          message: `${user.name} updated a node`,
+          entityType: LogEntityType.PROJECT,
+          entityId: dto.projectId,
+          actorUserId: user.id,
+          metadata: { nodeId: dto.nodeId },
+        });
+      }
     } catch (error) {
       client.emit('canvas:error', { message: 'Failed to update node' });
     }
@@ -221,6 +286,16 @@ export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const result = await this.canvasService.addEdge(user.id, dto);
       this.server.to(dto.projectId).emit('canvas:edge-added', result.data);
+
+      const log = await this.logsService.createLog({
+        action: 'EDGE_ADDED',
+        message: `${user.name} connected two nodes`,
+        entityType: LogEntityType.PROJECT,
+        entityId: dto.projectId,
+        actorUserId: user.id,
+        metadata: { edgeId: result.data!.id },
+      });
+      if (log) this.server.to(dto.projectId).emit('canvas:log-added', log);
     } catch {
       client.emit('canvas:error', { message: 'Failed to add edge' });
     }
@@ -233,6 +308,16 @@ export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       await this.canvasService.deleteEdge(user.id, dto);
       this.server.to(dto.projectId).emit('canvas:edge-deleted', { edgeId: dto.edgeId });
+
+      const log = await this.logsService.createLog({
+        action: 'EDGE_DELETED',
+        message: `${user.name} removed a connection`,
+        entityType: LogEntityType.PROJECT,
+        entityId: dto.projectId,
+        actorUserId: user.id,
+        metadata: { edgeId: dto.edgeId },
+      });
+      if (log) this.server.to(dto.projectId).emit('canvas:log-added', log);
     } catch {
       client.emit('canvas:error', { message: 'Failed to delete edge' });
     }
@@ -244,10 +329,98 @@ export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!user) return;
 
     try {
+      const allowed = await this.canvasService.canUserMutateNode(user.id, dto.nodeId, dto.projectId, 'delete');
+      if (!allowed) {
+        client.emit('canvas:error', { message: 'Permission denied: cannot delete this node' });
+        return;
+      }
+
       await this.canvasService.deleteNode(user.id, dto);
       this.server.to(dto.projectId).emit('canvas:node-deleted', { nodeId: dto.nodeId });
+
+      const nodeLog = await this.logsService.createLog({
+        action: 'NODE_DELETED',
+        message: `${user.name} deleted a node`,
+        entityType: LogEntityType.NODE,
+        entityId: dto.nodeId,
+        actorUserId: user.id,
+        metadata: { projectId: dto.projectId },
+      });
+      if (nodeLog) this.server.to(dto.projectId).emit('canvas:log-added', nodeLog);
+
+      this.logsService.createLog({
+        action: 'NODE_DELETED',
+        message: `${user.name} deleted a node`,
+        entityType: LogEntityType.PROJECT,
+        entityId: dto.projectId,
+        actorUserId: user.id,
+        metadata: { nodeId: dto.nodeId },
+      });
     } catch (error) {
       client.emit('canvas:error', { message: 'Failed to delete node' });
+    }
+  }
+
+  @SubscribeMessage('canvas:node-access-grant')
+  async handleNodeAccessGrant(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() dto: GrantNodeAccessDto,
+  ) {
+    const user: CanvasUser = client.data.user;
+    if (!user) return;
+
+    try {
+      const result = await this.canvasService.grantNodeAccess(user.id, dto);
+      const updatedAccesses = await this.canvasService.getNodeAccess(dto.nodeId, dto.projectId);
+
+      this.server.to(dto.projectId).emit('canvas:node-access-updated', {
+        nodeId: dto.nodeId,
+        accesses: updatedAccesses.data ?? [],
+      });
+
+      const log = await this.logsService.createLog({
+        action: 'NODE_ACCESS_GRANTED',
+        message: `${user.name} granted node access`,
+        entityType: LogEntityType.NODE,
+        entityId: dto.nodeId,
+        actorUserId: user.id,
+        targetUserId: dto.userId,
+        metadata: { projectId: dto.projectId, accessLevel: dto.accessLevel },
+      });
+      if (log) this.server.to(dto.projectId).emit('canvas:log-added', log);
+    } catch (error: any) {
+      client.emit('canvas:error', { message: error?.message || 'Failed to grant node access' });
+    }
+  }
+
+  @SubscribeMessage('canvas:node-access-revoke')
+  async handleNodeAccessRevoke(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() dto: RevokeNodeAccessDto,
+  ) {
+    const user: CanvasUser = client.data.user;
+    if (!user) return;
+
+    try {
+      await this.canvasService.revokeNodeAccess(user.id, dto);
+      const updatedAccesses = await this.canvasService.getNodeAccess(dto.nodeId, dto.projectId);
+
+      this.server.to(dto.projectId).emit('canvas:node-access-updated', {
+        nodeId: dto.nodeId,
+        accesses: updatedAccesses.data ?? [],
+      });
+
+      const log = await this.logsService.createLog({
+        action: 'NODE_ACCESS_REVOKED',
+        message: `${user.name} revoked node access`,
+        entityType: LogEntityType.NODE,
+        entityId: dto.nodeId,
+        actorUserId: user.id,
+        metadata: { projectId: dto.projectId, accessId: dto.accessId },
+      });
+      if (log) this.server.to(dto.projectId).emit('canvas:log-added', log);
+    } catch (error: any) {
+      client.emit('canvas:error', { message: error?.message || 'Failed to revoke node access' });
     }
   }
 }
