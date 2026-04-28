@@ -126,6 +126,27 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Canvas tool cursor overrides */
+.canvas-crosshair .react-flow__pane {
+  cursor: crosshair !important;
+}
+.canvas-crosshair .react-flow__node {
+  cursor: crosshair !important;
+}
+
+/* React Flow handles: always visible and always interactive */
+.react-flow__handle {
+  opacity: 1 !important;
+  pointer-events: all !important;
+  cursor: crosshair !important;
+}
+
+/* Override connection line stroke via CSS var */
+.react-flow {
+  --xy-connectionline-stroke: #F43F7A;
+  --xy-connectionline-stroke-width: 2.5;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

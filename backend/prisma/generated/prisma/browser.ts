@@ -33,6 +33,16 @@ export type ProjectInvitation = Prisma.ProjectInvitationModel
  */
 export type Project = Prisma.ProjectModel
 /**
+ * Model CanvasNode
+ * 
+ */
+export type CanvasNode = Prisma.CanvasNodeModel
+/**
+ * Model CanvasEdge
+ * 
+ */
+export type CanvasEdge = Prisma.CanvasEdgeModel
+/**
  * Model UserAccess
  * 
  */

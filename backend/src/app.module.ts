@@ -8,6 +8,7 @@ import { ProjectModule } from './project/project.module';
 import { ProjectInvitationsModule } from './project-invitations/project-invitations.module';
 import { LogsModule } from './logs/logs.module';
 import { GatewayModule } from './gateway/gateway.module';
+import { CanvasModule } from './canvas/canvas.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { GatewayModule } from './gateway/gateway.module';
     ProjectInvitationsModule,
     LogsModule,
     GatewayModule,
+    CanvasModule,
   ],
   controllers: [AppController],
   providers: [AppService],
