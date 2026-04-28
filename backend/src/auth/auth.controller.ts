@@ -61,7 +61,17 @@ export class AuthController {
   @UseGuards(GoogleOAuthGuard)
   @Get('google-auth-redirect')
   async googleAuthRedirect(@Req() req, @Res() res: Response) {
-    await this.authService.signInWithGoogle(req.user, res);
-    return res.redirect(`${process.env.GOOGLE_REDIRECT_URL_CLIENT_REACT}`);
+    const result = await this.authService.signInWithGoogle(req.user, res);
+    const clientUrl = process.env.GOOGLE_REDIRECT_URL_CLIENT_REACT ?? 'http://localhost:3000/';
+    let url: URL;
+    try {
+      url = new URL(clientUrl);
+    } catch {
+      url = new URL(clientUrl, 'http://localhost');
+    }
+    if (result.success && result.data?.token) {
+      url.searchParams.set('token', result.data.token);
+    }
+    return res.redirect(url.toString());
   }
 }

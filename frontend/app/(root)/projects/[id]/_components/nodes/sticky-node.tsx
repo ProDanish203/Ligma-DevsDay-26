@@ -26,6 +26,7 @@ export interface StickyNodeData {
   canEdit?: boolean;
   onUpdate?: (nodeId: string, data: Partial<{ label: string; color: string }>) => void;
   onManagePermissions?: (nodeId: string) => void;
+  onResize?: (nodeId: string, params: { x: number; y: number; width: number; height: number }) => void;
   [key: string]: unknown;
 }
 
@@ -51,11 +52,24 @@ export function StickyNode({ id, data, selected }: NodeProps) {
       style={{ backgroundColor: d.color || '#FEF08A', opacity: canEdit ? 1 : 0.85 }}
     >
       {canEdit && <NodeResizer minWidth={120} minHeight={80} isVisible={selected} />}
+      <NodeResizer
+        minWidth={120}
+        minHeight={80}
+        isVisible={selected}
+        onResizeEnd={(_, params) => {
+          d.onResize?.(id, {
+            x: params.x,
+            y: params.y,
+            width: params.width,
+            height: params.height,
+          });
+        }}
+      />
 
-      <Handle type="source" position={Position.Top}    id="top"    style={handleStyle} />
+      <Handle type="source" position={Position.Top} id="top" style={handleStyle} />
       <Handle type="source" position={Position.Bottom} id="bottom" style={handleStyle} />
-      <Handle type="source" position={Position.Left}   id="left"   style={handleStyle} />
-      <Handle type="source" position={Position.Right}  id="right"  style={handleStyle} />
+      <Handle type="source" position={Position.Left} id="left" style={handleStyle} />
+      <Handle type="source" position={Position.Right} id="right" style={handleStyle} />
 
       {/* Lock indicator for read-only nodes */}
       {!canEdit && (

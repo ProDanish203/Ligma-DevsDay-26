@@ -3,6 +3,7 @@ import { Poppins, Roboto } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import ReactQueryProvider from '@/providers/react-query';
+import { OAuthTokenSync } from '@/components/auth/oauth-token-sync';
 import { Toaster } from 'sonner';
 
 const poppins = Poppins({
@@ -33,6 +34,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={cn('antialiased overflow-x-clip', poppins.className, roboto.variable)}>
         <ReactQueryProvider>
+          <OAuthTokenSync />
           <Toaster richColors position="top-right" />
           {children}
         </ReactQueryProvider>
