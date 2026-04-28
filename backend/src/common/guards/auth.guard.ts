@@ -9,8 +9,8 @@ import { AuthService } from 'src/auth/auth.service';
 export class AuthGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
-    private readonly authService: AuthService
-  ) { }
+    private readonly authService: AuthService,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
@@ -22,8 +22,7 @@ export class AuthGuard implements CanActivate {
       if (!user) throw new UnauthorizedException('Unauthorized Access');
 
       const roles = this.reflector.get<UserRole[]>(ROLES_KEY, context.getHandler());
-      if (roles && !roles.includes(user.role as UserRole))
-        throw new ForbiddenException('Forbidden Access');
+      if (roles && !roles.includes(user.role as UserRole)) throw new ForbiddenException('Forbidden Access');
 
       (request as any).user = user;
       return true;

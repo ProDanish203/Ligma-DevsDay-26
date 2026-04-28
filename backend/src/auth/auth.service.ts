@@ -15,7 +15,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
-  ) { }
+  ) {}
 
   private async signJwtTokenToCookies(res: Response, payload: JwtPayload): Promise<string> {
     const token = await this.jwtService.signAsync(payload);
@@ -204,5 +204,4 @@ export class AuthService {
 
     return user ?? null;
   }
-
 }

@@ -7,18 +7,24 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
-import { Logger } from '@nestjs/common';
+import { Logger, OnModuleDestroy } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
+import { createAdapter } from '@socket.io/redis-adapter';
+import Redis from 'ioredis';
 import { PrismaService } from '../common/services/prisma.service';
 import { CanvasService } from './canvas.service';
-import { JoinCanvasDto, CursorMoveDto, AddNodeDto, UpdateNodeDto, DeleteNodeDto, AddEdgeDto, DeleteEdgeDto } from './dto/canvas.dto';
-import { CanvasUser, CursorPosition } from './types';
-
-interface RoomUser {
-  user: CanvasUser;
-  cursor: CursorPosition;
-}
+import { RedisService } from '../common/services/redis.service';
+import {
+  JoinCanvasDto,
+  CursorMoveDto,
+  AddNodeDto,
+  UpdateNodeDto,
+  DeleteNodeDto,
+  AddEdgeDto,
+  DeleteEdgeDto,
+} from './dto/canvas.dto';
+import { CanvasUser } from './types';
 
 @WebSocketGateway({
   cors: { origin: '*', credentials: true },
@@ -26,24 +32,72 @@ interface RoomUser {
   pingTimeout: 30000,
   pingInterval: 25000,
 })
-export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleDestroy {
   @WebSocketServer()
   server!: Server;
 
   private readonly logger = new Logger(CanvasGateway.name);
-  private readonly rooms = new Map<string, Map<string, RoomUser>>();
+  private redisPubClient: Redis | null = null;
+  private redisSubClient: Redis | null = null;
+  private adapterInitialized = false;
 
   constructor(
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
     private readonly canvasService: CanvasService,
+    private readonly redisService: RedisService,
   ) {}
+
+  async afterInit(server: Server) {
+    await this.setupRedisAdapter(server);
+  }
+
+  private async setupRedisAdapter(serverOrNamespace: Server) {
+    if (this.adapterInitialized) return;
+
+    try {
+      const ioServer = this.resolveIoServer(serverOrNamespace);
+      const redisClient = this.redisService.getClient();
+      this.redisPubClient = redisClient.duplicate();
+      this.redisSubClient = redisClient.duplicate();
+
+      await Promise.all([this.redisPubClient.ping(), this.redisSubClient.ping()]);
+      ioServer.adapter(createAdapter(this.redisPubClient, this.redisSubClient));
+      this.adapterInitialized = true;
+      this.logger.log('Redis adapter initialized for /canvas namespace');
+    } catch (error) {
+      this.logger.warn(
+        `Redis adapter not initialized for /canvas; falling back to single-instance mode: ${
+          (error as Error).message
+        }`,
+      );
+    }
+  }
+
+  private resolveIoServer(serverOrNamespace: Server): Server {
+    const maybeNamespace = serverOrNamespace as unknown as { server?: Server; adapter?: unknown };
+    if (typeof maybeNamespace.adapter === 'function') {
+      return serverOrNamespace;
+    }
+
+    if (maybeNamespace.server && typeof maybeNamespace.server.adapter === 'function') {
+      return maybeNamespace.server;
+    }
+
+    throw new Error('Unable to resolve Socket.IO server instance');
+  }
+
+  async onModuleDestroy() {
+    await Promise.allSettled([
+      this.redisPubClient?.quit(),
+      this.redisSubClient?.quit(),
+    ]);
+  }
 
   async handleConnection(client: Socket) {
     try {
       const token =
-        (client.handshake.auth?.token as string) ||
-        client.handshake.headers['authorization']?.replace('Bearer ', '');
+        (client.handshake.auth?.token as string) || client.handshake.headers['authorization']?.replace('Bearer ', '');
 
       if (!token) throw new Error('No token');
 
@@ -65,6 +119,7 @@ export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // this event before emitting canvas:join to avoid the race condition
       // where handleJoin runs before handleConnection finishes.
       client.emit('canvas:authenticated');
+      client.data.projectIds = new Set<string>();
     } catch (err) {
       this.logger.warn(`Canvas auth failed for ${client.id}: ${(err as Error).message}`);
       client.emit('error', { message: 'Unauthorized' });
@@ -72,21 +127,20 @@ export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  handleDisconnect(client: Socket) {
+  async handleDisconnect(client: Socket) {
     this.logger.log(`Canvas client disconnected: ${client.id}`);
-    this.rooms.forEach((roomUsers, projectId) => {
-      if (roomUsers.has(client.id)) {
-        const roomUser = roomUsers.get(client.id)!;
-        roomUsers.delete(client.id);
-        this.server.to(projectId).emit('canvas:user-left', {
-          userId: roomUser.user.id,
-          users: Array.from(roomUsers.values()).map((u) => u.user),
-        });
-        if (roomUsers.size === 0) {
-          this.rooms.delete(projectId);
-        }
-      }
-    });
+    const user: CanvasUser | undefined = client.data.user;
+    const projectIds = Array.from((client.data.projectIds as Set<string> | undefined) ?? []);
+
+    if (!user || projectIds.length === 0) return;
+
+    for (const projectId of projectIds) {
+      const users = await this.getProjectUsers(projectId);
+      this.server.to(projectId).emit('canvas:user-left', {
+        userId: user.id,
+        users,
+      });
+    }
   }
 
   @SubscribeMessage('canvas:join')
@@ -98,55 +152,50 @@ export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     const { projectId } = dto;
-
-    // Leave any existing rooms first (handles reconnect/re-join without stale data)
-    this.rooms.forEach((roomUsers, existingProjectId) => {
-      if (roomUsers.has(client.id)) {
-        roomUsers.delete(client.id);
-        this.server.to(existingProjectId).emit('canvas:user-left', {
-          userId: user.id,
-          users: Array.from(roomUsers.values()).map((u) => u.user),
-        });
-        client.leave(existingProjectId);
-        if (roomUsers.size === 0) {
-          this.rooms.delete(existingProjectId);
-        }
-      }
-    });
+    const joinedProjects = (client.data.projectIds as Set<string> | undefined) ?? new Set<string>();
+    for (const existingProjectId of joinedProjects) {
+      if (existingProjectId === projectId) continue;
+      await client.leave(existingProjectId);
+      const users = await this.getProjectUsers(existingProjectId);
+      this.server.to(existingProjectId).emit('canvas:user-left', {
+        userId: user.id,
+        users,
+      });
+      joinedProjects.delete(existingProjectId);
+    }
 
     await client.join(projectId);
-
-    if (!this.rooms.has(projectId)) {
-      this.rooms.set(projectId, new Map());
-    }
-    const roomUsers = this.rooms.get(projectId)!;
-    roomUsers.set(client.id, { user, cursor: { x: 0, y: 0 } });
+    client.data.projectIds = joinedProjects;
+    joinedProjects.add(projectId);
 
     try {
       const [nodesResult, edgesResult] = await Promise.all([
         this.canvasService.getCanvasNodes(projectId),
         this.canvasService.getCanvasEdges(projectId),
       ]);
+      const users = await this.getProjectUsers(projectId);
 
       if (!client.connected) return;
 
       client.emit('canvas:state', {
         nodes: nodesResult.data ?? [],
         edges: edgesResult.data ?? [],
-        users: Array.from(roomUsers.values()).map((u) => u.user),
+        users,
       });
     } catch (error) {
       this.logger.error(`Failed to load canvas state for project ${projectId}`, error);
+      const users = await this.getProjectUsers(projectId);
       client.emit('canvas:state', {
         nodes: [],
         edges: [],
-        users: Array.from(roomUsers.values()).map((u) => u.user),
+        users,
       });
     }
 
+    const users = await this.getProjectUsers(projectId);
     client.to(projectId).emit('canvas:user-joined', {
       user,
-      users: Array.from(roomUsers.values()).map((u) => u.user),
+      users,
     });
   }
 
@@ -157,29 +206,21 @@ export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     const { projectId } = dto;
     await client.leave(projectId);
+    const joinedProjects = (client.data.projectIds as Set<string> | undefined) ?? new Set<string>();
+    joinedProjects.delete(projectId);
+    client.data.projectIds = joinedProjects;
 
-    const roomUsers = this.rooms.get(projectId);
-    if (roomUsers) {
-      roomUsers.delete(client.id);
-      this.server.to(projectId).emit('canvas:user-left', {
-        userId: user.id,
-        users: Array.from(roomUsers.values()).map((u) => u.user),
-      });
-      if (roomUsers.size === 0) {
-        this.rooms.delete(projectId);
-      }
-    }
+    const users = await this.getProjectUsers(projectId);
+    this.server.to(projectId).emit('canvas:user-left', {
+      userId: user.id,
+      users,
+    });
   }
 
   @SubscribeMessage('canvas:cursor-move')
   handleCursorMove(@ConnectedSocket() client: Socket, @MessageBody() dto: CursorMoveDto) {
     const user: CanvasUser = client.data.user;
     if (!user) return;
-
-    const roomUsers = this.rooms.get(dto.projectId);
-    if (roomUsers?.has(client.id)) {
-      roomUsers.get(client.id)!.cursor = { x: dto.x, y: dto.y };
-    }
 
     client.to(dto.projectId).emit('canvas:cursor-moved', {
       userId: user.id,
@@ -249,5 +290,19 @@ export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect {
     } catch (error) {
       client.emit('canvas:error', { message: 'Failed to delete node' });
     }
+  }
+
+  private async getProjectUsers(projectId: string): Promise<CanvasUser[]> {
+    const sockets = await this.server.in(projectId).fetchSockets();
+    const uniqueUsers = new Map<string, CanvasUser>();
+
+    sockets.forEach((socket) => {
+      const user = socket.data.user as CanvasUser | undefined;
+      if (user && !uniqueUsers.has(user.id)) {
+        uniqueUsers.set(user.id, user);
+      }
+    });
+
+    return Array.from(uniqueUsers.values());
   }
 }

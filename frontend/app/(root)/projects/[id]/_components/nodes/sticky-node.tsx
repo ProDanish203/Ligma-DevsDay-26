@@ -32,9 +32,12 @@ export function StickyNode({ id, data, selected }: NodeProps) {
   const [editing, setEditing] = useState(false);
   const textRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleColorChange = useCallback((color: string) => {
-    d.onUpdate?.(id, { color });
-  }, [id, d]);
+  const handleColorChange = useCallback(
+    (color: string) => {
+      d.onUpdate?.(id, { color });
+    },
+    [id, d],
+  );
 
   const handleBlur = useCallback(() => {
     setEditing(false);
@@ -46,10 +49,10 @@ export function StickyNode({ id, data, selected }: NodeProps) {
       className="relative flex h-full w-full flex-col rounded-md shadow-md"
       style={{ backgroundColor: d.color || '#FEF08A' }}
     >
-      <NodeResizer 
-        minWidth={120} 
-        minHeight={80} 
-        isVisible={selected} 
+      <NodeResizer
+        minWidth={120}
+        minHeight={80}
+        isVisible={selected}
         onResizeEnd={(_, params) => {
           d.onResize?.(id, {
             x: params.x,
@@ -60,10 +63,10 @@ export function StickyNode({ id, data, selected }: NodeProps) {
         }}
       />
 
-      <Handle type="source" position={Position.Top}    id="top"    style={handleStyle} />
+      <Handle type="source" position={Position.Top} id="top" style={handleStyle} />
       <Handle type="source" position={Position.Bottom} id="bottom" style={handleStyle} />
-      <Handle type="source" position={Position.Left}   id="left"   style={handleStyle} />
-      <Handle type="source" position={Position.Right}  id="right"  style={handleStyle} />
+      <Handle type="source" position={Position.Left} id="left" style={handleStyle} />
+      <Handle type="source" position={Position.Right} id="right" style={handleStyle} />
 
       {/* Color swatches */}
       <div className="flex items-center gap-1 p-2">
@@ -72,7 +75,10 @@ export function StickyNode({ id, data, selected }: NodeProps) {
             key={c.value}
             className="size-4 rounded-full border border-black/10 transition-transform hover:scale-110"
             style={{ backgroundColor: c.value }}
-            onClick={(e) => { e.stopPropagation(); handleColorChange(c.value); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleColorChange(c.value);
+            }}
             title={c.label}
           />
         ))}

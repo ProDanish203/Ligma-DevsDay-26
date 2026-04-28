@@ -25,10 +25,10 @@ export function ShapeNode({ id, data, selected }: NodeProps) {
 
   return (
     <div className="relative h-full w-full">
-      <NodeResizer 
-        minWidth={60} 
-        minHeight={60} 
-        isVisible={selected} 
+      <NodeResizer
+        minWidth={60}
+        minHeight={60}
+        isVisible={selected}
         onResizeEnd={(_, params) => {
           d.onResize?.(id, {
             x: params.x,
@@ -39,10 +39,10 @@ export function ShapeNode({ id, data, selected }: NodeProps) {
         }}
       />
 
-      <Handle type="source" position={Position.Top}    id="top"    style={handleStyle} />
+      <Handle type="source" position={Position.Top} id="top" style={handleStyle} />
       <Handle type="source" position={Position.Bottom} id="bottom" style={handleStyle} />
-      <Handle type="source" position={Position.Left}   id="left"   style={handleStyle} />
-      <Handle type="source" position={Position.Right}  id="right"  style={handleStyle} />
+      <Handle type="source" position={Position.Left} id="left" style={handleStyle} />
+      <Handle type="source" position={Position.Right} id="right" style={handleStyle} />
 
       <div
         className="flex h-full w-full cursor-default items-center justify-center select-none"

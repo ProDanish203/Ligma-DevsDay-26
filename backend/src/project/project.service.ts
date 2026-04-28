@@ -373,13 +373,15 @@ export class ProjectService {
         orderBy: { createdAt: 'asc' },
       });
 
-      const members = memberRows.filter((row) => row.userId !== project.userId).map((row) => ({
-        userAccessId: row.id,
-        userId: row.user.id,
-        name: row.user.name,
-        email: row.user.email,
-        accessLevel: row.accessLevel,
-      }));
+      const members = memberRows
+        .filter((row) => row.userId !== project.userId)
+        .map((row) => ({
+          userAccessId: row.id,
+          userId: row.user.id,
+          name: row.user.name,
+          email: row.user.email,
+          accessLevel: row.accessLevel,
+        }));
 
       return {
         message: 'Project members retrieved successfully',
@@ -465,7 +467,10 @@ export class ProjectService {
         },
       };
     } catch (err: any) {
-      throw throwError(err.message || 'Failed to retrieve dashboard stats', err.status || HttpStatus.INTERNAL_SERVER_ERROR);
+      throw throwError(
+        err.message || 'Failed to retrieve dashboard stats',
+        err.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 

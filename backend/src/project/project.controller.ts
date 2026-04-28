@@ -9,12 +9,30 @@ import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { UpdateProjectMemberDto } from './dto/update-project-member.dto';
 import { ProjectService } from './project.service';
+import { RedisService } from '../common/services/redis.service';
 
 @Controller('project')
 @ApiTags('Project')
 @UseGuards(AuthGuard)
 export class ProjectController {
-  constructor(private readonly projectService: ProjectService) {}
+  constructor(
+    private readonly projectService: ProjectService,
+    private readonly redisService: RedisService,
+  ) {}
+
+  private readonly defaultCacheTtl = 300;
+
+  private getCacheKey(userId: string, prefix: string, ...params: (string | number | boolean | undefined)[]): string {
+    const keyParts = params.filter((p) => p !== undefined && p !== null && p !== '');
+    return `project:${userId}:${prefix}:${keyParts.join(':')}`;
+  }
+
+  private async invalidateProjectCache(): Promise<void> {
+    const keys = await this.redisService.getClient().keys('project:*');
+    if (keys.length) {
+      await this.redisService.deleteMany(keys);
+    }
+  }
 
   @Roles(...Object.values(UserRole))
   @ApiProperty({
@@ -24,7 +42,9 @@ export class ProjectController {
   })
   @Post('create')
   async createProject(@CurrentUser() user: User, @Body() dto: CreateProjectDto) {
-    return this.projectService.createProject(user, dto);
+    const result = await this.projectService.createProject(user, dto);
+    await this.invalidateProjectCache();
+    return result;
   }
 
   @Roles(...Object.values(UserRole))
@@ -39,7 +59,21 @@ export class ProjectController {
   @ApiQuery({ name: 'search', type: String, required: false })
   @Get('all')
   async getAllProjects(@CurrentUser() user: User, @Query() query: QueryParams) {
-    return this.projectService.getAllProjects(user, query);
+    const cacheKey = this.getCacheKey(
+      user.id,
+      'all',
+      query?.page,
+      query?.limit,
+      query?.search,
+      query?.filter,
+      query?.sort,
+    );
+    const cached = await this.redisService.get(cacheKey);
+    if (cached) return cached;
+
+    const result = await this.projectService.getAllProjects(user, query);
+    await this.redisService.set(cacheKey, result, this.defaultCacheTtl);
+    return result;
   }
 
   @Roles(...Object.values(UserRole))
@@ -49,7 +83,13 @@ export class ProjectController {
   })
   @Get('dashboard-stats')
   async getDashboardStats(@CurrentUser() user: User) {
-    return this.projectService.getDashboardStats(user);
+    const cacheKey = this.getCacheKey(user.id, 'dashboard-stats');
+    const cached = await this.redisService.get(cacheKey);
+    if (cached) return cached;
+
+    const result = await this.projectService.getDashboardStats(user);
+    await this.redisService.set(cacheKey, result, this.defaultCacheTtl);
+    return result;
   }
 
   @Roles(...Object.values(UserRole))
@@ -59,7 +99,13 @@ export class ProjectController {
   })
   @Get(':projectId/members')
   async getProjectMembers(@CurrentUser() user: User, @Param('projectId') projectId: string) {
-    return this.projectService.getProjectMembers(user, projectId);
+    const cacheKey = this.getCacheKey(user.id, 'members', projectId);
+    const cached = await this.redisService.get(cacheKey);
+    if (cached) return cached;
+
+    const result = await this.projectService.getProjectMembers(user, projectId);
+    await this.redisService.set(cacheKey, result, this.defaultCacheTtl);
+    return result;
   }
 
   @Roles(...Object.values(UserRole))
@@ -75,7 +121,9 @@ export class ProjectController {
     @Param('userAccessId') userAccessId: string,
     @Body() dto: UpdateProjectMemberDto,
   ) {
-    return this.projectService.updateProjectMemberAccess(user, projectId, userAccessId, dto);
+    const result = await this.projectService.updateProjectMemberAccess(user, projectId, userAccessId, dto);
+    await this.invalidateProjectCache();
+    return result;
   }
 
   @Roles(...Object.values(UserRole))
@@ -89,7 +137,9 @@ export class ProjectController {
     @Param('projectId') projectId: string,
     @Param('userAccessId') userAccessId: string,
   ) {
-    return this.projectService.removeProjectMember(user, projectId, userAccessId);
+    const result = await this.projectService.removeProjectMember(user, projectId, userAccessId);
+    await this.invalidateProjectCache();
+    return result;
   }
 
   @Roles(...Object.values(UserRole))
@@ -100,7 +150,9 @@ export class ProjectController {
   })
   @Patch(':projectId')
   async updateProject(@CurrentUser() user: User, @Param('projectId') projectId: string, @Body() dto: UpdateProjectDto) {
-    return this.projectService.updateProject(user, projectId, dto);
+    const result = await this.projectService.updateProject(user, projectId, dto);
+    await this.invalidateProjectCache();
+    return result;
   }
 
   @Roles(...Object.values(UserRole))
@@ -110,7 +162,13 @@ export class ProjectController {
   })
   @Get(':projectId')
   async getProjectById(@CurrentUser() user: User, @Param('projectId') projectId: string) {
-    return this.projectService.getProjectById(user, projectId);
+    const cacheKey = this.getCacheKey(user.id, 'by-id', projectId);
+    const cached = await this.redisService.get(cacheKey);
+    if (cached) return cached;
+
+    const result = await this.projectService.getProjectById(user, projectId);
+    await this.redisService.set(cacheKey, result, this.defaultCacheTtl);
+    return result;
   }
 
   @Roles(...Object.values(UserRole))
@@ -120,6 +178,8 @@ export class ProjectController {
   })
   @Delete(':projectId')
   async deleteProject(@CurrentUser() user: User, @Param('projectId') projectId: string) {
-    return this.projectService.deleteProject(user, projectId);
+    const result = await this.projectService.deleteProject(user, projectId);
+    await this.invalidateProjectCache();
+    return result;
   }
 }

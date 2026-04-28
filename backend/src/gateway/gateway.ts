@@ -6,16 +6,18 @@ import {
   ConnectedSocket,
   OnGatewayConnection,
   OnGatewayDisconnect,
-  WsException,
 } from '@nestjs/websockets';
-import { UseGuards, Logger, Body } from '@nestjs/common';
+import { UseGuards, Logger, OnModuleDestroy } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
+import { createAdapter } from '@socket.io/redis-adapter';
+import Redis from 'ioredis';
 import { PrismaService } from '../common/services/prisma.service';
 import { WsAuthGuard } from '../common/guards/ws-auth.guard';
 import { MouseMoveDto } from './dto/mouse-move.dto';
 import { JoinProjectDto } from './dto/join-project.dto';
 import { LeaveProjectDto } from './dto/leave-project.dto';
+import { RedisService } from '../common/services/redis.service';
 
 @WebSocketGateway({
   cors: {
@@ -24,22 +26,71 @@ import { LeaveProjectDto } from './dto/leave-project.dto';
   },
   namespace: '/ws',
 })
-export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleDestroy {
   @WebSocketServer()
   server!: Server;
 
   private readonly logger = new Logger(AppGateway.name);
+  private redisPubClient: Redis | null = null;
+  private redisSubClient: Redis | null = null;
+  private adapterInitialized = false;
 
   constructor(
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
-  ) { }
+    private readonly redisService: RedisService,
+  ) {}
+
+  async afterInit(server: Server) {
+    await this.setupRedisAdapter(server);
+  }
+
+  private async setupRedisAdapter(serverOrNamespace: Server) {
+    if (this.adapterInitialized) return;
+
+    try {
+      const ioServer = this.resolveIoServer(serverOrNamespace);
+      const redisClient = this.redisService.getClient();
+      this.redisPubClient = redisClient.duplicate();
+      this.redisSubClient = redisClient.duplicate();
+
+      await Promise.all([this.redisPubClient.ping(), this.redisSubClient.ping()]);
+      ioServer.adapter(createAdapter(this.redisPubClient, this.redisSubClient));
+      this.adapterInitialized = true;
+      this.logger.log('Redis adapter initialized for /ws namespace');
+    } catch (error) {
+      this.logger.warn(
+        `Redis adapter not initialized for /ws; falling back to single-instance mode: ${
+          (error as Error).message
+        }`,
+      );
+    }
+  }
+
+  private resolveIoServer(serverOrNamespace: Server): Server {
+    const maybeNamespace = serverOrNamespace as unknown as { server?: Server; adapter?: unknown };
+    if (typeof maybeNamespace.adapter === 'function') {
+      return serverOrNamespace;
+    }
+
+    if (maybeNamespace.server && typeof maybeNamespace.server.adapter === 'function') {
+      return maybeNamespace.server;
+    }
+
+    throw new Error('Unable to resolve Socket.IO server instance');
+  }
+
+  async onModuleDestroy() {
+    await Promise.allSettled([
+      this.redisPubClient?.quit(),
+      this.redisSubClient?.quit(),
+    ]);
+  }
 
   async handleConnection(client: Socket) {
     try {
       const token =
-        (client.handshake.auth?.token as string) ||
-        client.handshake.headers['authorization']?.replace('Bearer ', '');
+        (client.handshake.auth?.token as string) || client.handshake.headers['authorization']?.replace('Bearer ', '');
 
       if (!token) throw new Error('No token');
 
@@ -68,10 +119,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @UseGuards(WsAuthGuard)
   @SubscribeMessage('join-project')
-  async handleJoinProject(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: JoinProjectDto,
-  ) {
+  async handleJoinProject(@ConnectedSocket() client: Socket, @MessageBody() data: JoinProjectDto) {
     const user = client.data.user;
 
     const hasAccess = await this.checkHasProjectAccess(user.id, data.projectId);
@@ -88,10 +136,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @UseGuards(WsAuthGuard)
   @SubscribeMessage('leave-project')
-  async handleLeaveProject(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: LeaveProjectDto,
-  ) {
+  async handleLeaveProject(@ConnectedSocket() client: Socket, @MessageBody() data: LeaveProjectDto) {
     const room = `project:${data.projectId}`;
     await client.leave(room);
     client.emit('left-project', { projectId: data.projectId });
@@ -99,10 +144,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @UseGuards(WsAuthGuard)
   @SubscribeMessage('mouse-move')
-  handleMouseMove(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: MouseMoveDto,
-  ) {
+  handleMouseMove(@ConnectedSocket() client: Socket, @MessageBody() data: MouseMoveDto) {
     const user = client.data.user;
     const room = `project:${data.projectId}`;
 
