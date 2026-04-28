@@ -36,13 +36,17 @@ import { Loader2, Wifi, WifiOff, AlertTriangle } from 'lucide-react';
 
 const nodeTypes = { sticky: StickyNode, shape: ShapeNode, draw: DrawNode };
 
-function dbNodeToFlow(dbNode: CanvasNodeSchema, onUpdate: (nodeId: string, data: any) => void): Node {
+function dbNodeToFlow(
+  dbNode: CanvasNodeSchema,
+  onUpdate: (nodeId: string, data: any) => void,
+  onResize: (nodeId: string, params: { x: number; y: number; width: number; height: number }) => void
+): Node {
   return {
     id: dbNode.id,
     type: dbNode.type,
     position: { x: dbNode.positionX, y: dbNode.positionY },
     style: { width: dbNode.width, height: dbNode.height },
-    data: { ...(dbNode.data as object), onUpdate },
+    data: { ...(dbNode.data as object), onUpdate, onResize },
   };
 }
 
@@ -159,11 +163,21 @@ function CanvasInner({
     updateNodeRef.current({ nodeId, data });
   }, []);
 
+  const stableOnResize = useCallback((nodeId: string, params: { x: number; y: number; width: number; height: number }) => {
+    updateNodeRef.current({
+      nodeId,
+      positionX: params.x,
+      positionY: params.y,
+      width: params.width,
+      height: params.height,
+    });
+  }, []);
+
   // ── Initialize local state from the already-available data ──────────
   // Because CanvasInner only mounts after initialLoadDone=true, dbNodes
   // already contains the server data. No empty-frame flash.
   const initialFlowNodes = useMemo(
-    () => dbNodes.map((n) => dbNodeToFlow(n, stableOnUpdate)),
+    () => dbNodes.map((n) => dbNodeToFlow(n, stableOnUpdate, stableOnResize)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [], // compute once on mount
   );
@@ -204,16 +218,21 @@ function CanvasInner({
       const draggingIds = new Set(prev.filter((n) => n.dragging).map((n) => n.id));
       const next = dbNodes.map((dbNode) => {
         if (draggingIds.has(dbNode.id)) {
-          return prev.find((n) => n.id === dbNode.id) ?? dbNodeToFlow(dbNode, stableOnUpdate);
+          return prev.find((n) => n.id === dbNode.id) ?? dbNodeToFlow(dbNode, stableOnUpdate, stableOnResize);
         }
-        return dbNodeToFlow(dbNode, stableOnUpdate);
+        return dbNodeToFlow(dbNode, stableOnUpdate, stableOnResize);
       });
       // Avoid replacing the array if nothing meaningful changed
       if (prev.length === next.length && prev.every((n, i) => n.id === next[i].id)) {
-        // Check if positions/data actually changed
+        // Check if positions/dimensions actually changed
         const changed = next.some((n, i) => {
           const p = prev[i];
-          return p.position.x !== n.position.x || p.position.y !== n.position.y;
+          return (
+            p.position.x !== n.position.x || 
+            p.position.y !== n.position.y ||
+            p.style?.width !== n.style?.width ||
+            p.style?.height !== n.style?.height
+          );
         });
         if (!changed) return prev;
       }
@@ -253,12 +272,6 @@ function CanvasInner({
         const c = change as NodePositionChange;
         if (c.dragging === false && c.position) {
           updateNode({ nodeId: c.id, positionX: c.position.x, positionY: c.position.y });
-        }
-      }
-      if (change.type === 'dimensions') {
-        const c = change as NodeDimensionChange;
-        if (!c.resizing && c.dimensions) {
-          updateNode({ nodeId: c.id, width: c.dimensions.width, height: c.dimensions.height });
         }
       }
     }
