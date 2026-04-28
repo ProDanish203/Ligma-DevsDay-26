@@ -37,10 +37,12 @@ model User {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  projects     Project[]
-  userAccesses UserAccess[]
-  actorLogs    Log[] @relation("ActorLogs")
-  targetLogs   Log[] @relation("TargetLogs")
+  projects      Project[]
+  userAccesses  UserAccess[]
+  actorLogs     Log[]        @relation("ActorLogs")
+  targetLogs    Log[]        @relation("TargetLogs")
+  createdNodes  CanvasNode[]
+  createdTasks  Task[]
 
   @@index([name])
   @@index([email])
@@ -78,7 +80,7 @@ enum ProjectVisibility {
 }
 
 model Project {
-  id          String  @id @unique @default(uuid()) @db.Uuid
+  id          String  @id @default(uuid()) @db.Uuid
   name        String
   description String?
   userId      String  @db.Uuid
@@ -91,6 +93,8 @@ model Project {
   canvasNodes CanvasNode[]
   canvasEdges CanvasEdge[]
 
+  taskBoard TaskBoard?
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
@@ -100,27 +104,47 @@ model Project {
   @@index([userId])
 }
 
-model CanvasNode {
-  id        String  @id @unique @default(uuid()) @db.Uuid
-  projectId String  @db.Uuid
-  project   Project @relation(fields: [projectId], references: [id])
-
-  type      String
-  positionX Float
-  positionY Float
-  width     Float   @default(200)
-  height    Float   @default(150)
-  data      Json
-
-  createdById String @db.Uuid
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
-
-  @@index([projectId])
+enum NodeIntent {
+  ACTION_ITEM
+  DECISION
+  OPEN_QUESTION
+  REFERENCE
+  UNCLASSIFIED
 }
 
+enum NodeRole {
+  LEAD
+  CONTRIBUTOR
+  VIEWER
+}
+
+model CanvasNode {
+  id          String      @id @default(uuid()) @db.Uuid
+  projectId   String      @db.Uuid
+  project     Project     @relation(fields: [projectId], references: [id])
+
+  type        String
+  positionX   Float
+  positionY   Float
+  width       Float       @default(200)
+  height      Float       @default(150)
+  data        Json
+
+  intent      NodeIntent  @default(UNCLASSIFIED)
+  lockedToRole NodeRole?
+
+  createdById String      @db.Uuid
+  createdBy   User        @relation(fields: [createdById], references: [id])
+
+  tasks       Task[]
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  deletedAt   DateTime?
+
+  @@index([projectId])
+  @@index([intent])
+}
 model CanvasEdge {
   id        String  @id @unique @default(uuid()) @db.Uuid
   projectId String  @db.Uuid
@@ -212,4 +236,36 @@ model Log {
   @@index([actorUserId])
   @@index([targetUserId])
   @@index([createdAt])
+}
+
+model TaskBoard {
+  id        String    @id @default(uuid()) @db.Uuid
+  projectId String    @unique @db.Uuid
+  project   Project   @relation(fields: [projectId], references: [id])
+  tasks     Task[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+model Task {
+  id           String     @id @default(uuid()) @db.Uuid
+  taskBoardId  String     @db.Uuid
+  taskBoard    TaskBoard  @relation(fields: [taskBoardId], references: [id])
+
+  canvasNodeId String     @db.Uuid
+  canvasNode   CanvasNode @relation(fields: [canvasNodeId], references: [id])
+
+  createdById  String     @db.Uuid
+  createdBy    User       @relation(fields: [createdById], references: [id])
+
+  title        String
+  description  String?
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  @@index([taskBoardId])
+  @@index([canvasNodeId])
 }

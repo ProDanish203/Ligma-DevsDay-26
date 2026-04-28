@@ -4,10 +4,14 @@ import { throwError } from '../common/utils/helpers';
 import { ApiResponse } from '../common/types/type';
 import { canvasNodeSelect, CanvasNodeSelect, canvasEdgeSelect, CanvasEdgeSelect } from './queries';
 import { AddNodeDto, DeleteNodeDto, UpdateNodeDto, AddEdgeDto, DeleteEdgeDto } from './dto/canvas.dto';
+import { AiService } from 'src/ai/ai.service';
+import { NodeIntent, User } from '@db';
+import { TaskBoardService } from 'src/task-board/task-board.service';
+import { CanvasUser } from './types';
 
 @Injectable()
 export class CanvasService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly aiService: AiService, private readonly taskBoardService: TaskBoardService) { }
 
   async getCanvasNodes(projectId: string): Promise<ApiResponse<CanvasNodeSelect[]>> {
     try {
@@ -32,7 +36,7 @@ export class CanvasService {
           positionY: dto.positionY,
           width: dto.width,
           height: dto.height,
-          data: dto.data as any,
+          data: dto.data,
           createdById: userId,
         },
         select: canvasNodeSelect,
@@ -43,11 +47,25 @@ export class CanvasService {
     }
   }
 
-  async updateNode(userId: string, dto: UpdateNodeDto): Promise<ApiResponse<CanvasNodeSelect>> {
+  private async classificationStickyNode(nodeId: string, dto: UpdateNodeDto, user: CanvasUser) {
+    if (!dto.data?.label) return;
+    console.log(dto.data.label)
+    const { intent, title, description } = await this.aiService.classifyIntent(dto.data.label);
+    console.log(intent)
+    if (intent === NodeIntent.ACTION_ITEM) {
+      await this.taskBoardService.createTask(user as unknown as User, dto.projectId, {
+        title: title ?? dto.data.label,
+        description: description ?? undefined,
+        canvasNodeId: nodeId,
+      });
+    }
+  }
+
+  async updateNode(user: CanvasUser, dto: UpdateNodeDto): Promise<ApiResponse<CanvasNodeSelect>> {
     try {
       const existing = await this.prisma.canvasNode.findFirst({
         where: { id: dto.nodeId, projectId: dto.projectId, deletedAt: null },
-        select: { id: true },
+        select: { id: true, type: true, data: true },
       });
       if (!existing) throw throwError('Node not found', HttpStatus.NOT_FOUND);
 
@@ -63,8 +81,15 @@ export class CanvasService {
         data: updateData,
         select: canvasNodeSelect,
       });
+      console.log("existing data", (existing as any).data?.label)
+      console.log("new data", dto.data?.label)
+      if (existing.type === 'sticky' && dto.data?.label && (existing as any).data?.label !== dto.data.label) {
+        console.log('starting generation')
+        await this.classificationStickyNode(node.id, dto, user)
+      }
       return { message: 'Node updated', success: true, data: node };
     } catch (error: any) {
+      console.log(error)
       if (error?.status) throw error;
       throw throwError('Failed to update node', HttpStatus.INTERNAL_SERVER_ERROR);
     }

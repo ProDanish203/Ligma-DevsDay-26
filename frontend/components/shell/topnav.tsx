@@ -10,9 +10,15 @@ const PAGE_TITLES: Record<string, string> = {
   '/settings': 'Settings',
 };
 
+function resolveTitle(pathname: string): string {
+  if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname];
+  if (pathname.endsWith('/task-board')) return 'Task Board';
+  return 'Dashboard';
+}
+
 export function Topnav() {
   const pathname = usePathname();
-  const title = PAGE_TITLES[pathname] ?? 'Dashboard';
+  const title = resolveTitle(pathname);
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-gray-100 bg-white/90 px-6 backdrop-blur-md">

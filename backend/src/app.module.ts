@@ -9,6 +9,9 @@ import { ProjectInvitationsModule } from './project-invitations/project-invitati
 import { LogsModule } from './logs/logs.module';
 import { GatewayModule } from './gateway/gateway.module';
 import { CanvasModule } from './canvas/canvas.module';
+import { AiService } from './ai/ai.service';
+import { AiModule } from './ai/ai.module';
+import { TaskBoardModule } from './task-board/task-board.module';
 
 @Module({
   imports: [
@@ -22,8 +25,10 @@ import { CanvasModule } from './canvas/canvas.module';
     LogsModule,
     GatewayModule,
     CanvasModule,
+    AiModule,
+    TaskBoardModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, AiService],
 })
 export class AppModule {}

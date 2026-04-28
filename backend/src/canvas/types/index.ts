@@ -9,7 +9,7 @@ export interface CursorPosition {
   y: number;
 }
 
-export interface CanvasNodeData {
+export type CanvasNodeData = {
   label: string;
   color: string;
   shape?: 'rect' | 'circle';

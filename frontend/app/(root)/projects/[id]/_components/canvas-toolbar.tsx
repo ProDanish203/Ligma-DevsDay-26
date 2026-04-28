@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, Circle, MousePointer, Square, StickyNote, PenTool } from 'lucide-react';
+import { ArrowLeft, Circle, ClipboardList, MousePointer, Square, StickyNote, PenTool } from 'lucide-react';
 import Link from 'next/link';
 
 export type ToolMode = 'select' | 'sticky' | 'rect' | 'circle' | 'draw';
@@ -23,9 +23,10 @@ const TOOLS: ToolBtn[] = [
 interface CanvasToolbarProps {
   toolMode: ToolMode;
   onToolChange: (mode: ToolMode) => void;
+  projectId: string;
 }
 
-export function CanvasToolbar({ toolMode, onToolChange }: CanvasToolbarProps) {
+export function CanvasToolbar({ toolMode, onToolChange, projectId }: CanvasToolbarProps) {
   return (
     <div className="absolute left-4 top-1/2 z-20 flex -translate-y-1/2 flex-col gap-1 rounded-xl border border-gray-200 bg-white p-1.5 shadow-lg">
       <Link
@@ -34,6 +35,14 @@ export function CanvasToolbar({ toolMode, onToolChange }: CanvasToolbarProps) {
         title="Back to projects"
       >
         <ArrowLeft className="size-4" />
+      </Link>
+
+      <Link
+        href={`/projects/${projectId}/task-board`}
+        className="flex size-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-pink-50 hover:text-brand-primary"
+        title="Task board"
+      >
+        <ClipboardList className="size-4" />
       </Link>
 
       <div className="mx-1 h-px bg-gray-100" />
