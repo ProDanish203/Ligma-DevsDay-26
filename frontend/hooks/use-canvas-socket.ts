@@ -41,7 +41,7 @@ export function useCanvasSocket({ projectId, user }: { projectId: string; user: 
       return;
     }
 
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:8000';
+    const socketUrl = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:8000';
     let alive = true;
 
     // Reset state for fresh connection
