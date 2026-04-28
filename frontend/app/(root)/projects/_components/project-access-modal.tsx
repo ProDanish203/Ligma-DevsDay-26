@@ -91,7 +91,7 @@ export function ProjectAccessModal({ open, onOpenChange, project, onChanged }: P
     control,
     formState: { errors, isSubmitting },
   } = useForm<InviteFields>({
-    resolver: zodResolver(inviteFieldsSchema),
+    resolver: zodResolver(inviteFieldsSchema as any),
     defaultValues: {
       email: '',
       accessLevel: UserAccessLevel.VIEWER,

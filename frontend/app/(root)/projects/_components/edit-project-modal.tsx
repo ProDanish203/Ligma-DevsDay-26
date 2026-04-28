@@ -49,7 +49,7 @@ export function EditProjectModal({ open, onOpenChange, project, onUpdated }: Edi
     reset,
     formState: { errors, isSubmitting },
   } = useForm<UpdateProjectSchema>({
-    resolver: zodResolver(updateProjectSchema),
+    resolver: zodResolver(updateProjectSchema as any),
     defaultValues: { name: '', description: '' },
     values: project
       ? {

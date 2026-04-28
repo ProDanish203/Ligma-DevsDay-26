@@ -38,7 +38,7 @@ export default function SettingsPage() {
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<UpdateUserSchema>({
-    resolver: zodResolver(updateUserSchema),
+    resolver: zodResolver(updateUserSchema as any),
     defaultValues: { name: user?.name ?? '' },
     values: { name: user?.name ?? '' },
   });

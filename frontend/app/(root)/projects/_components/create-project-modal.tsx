@@ -33,7 +33,7 @@ export function CreateProjectModal({ open, onOpenChange, onCreated }: CreateProj
     reset,
     formState: { errors, isSubmitting },
   } = useForm<CreateProjectSchema>({
-    resolver: zodResolver(createProjectSchema),
+    resolver: zodResolver(createProjectSchema as any),
     defaultValues: { name: '', description: '' },
   });
 
