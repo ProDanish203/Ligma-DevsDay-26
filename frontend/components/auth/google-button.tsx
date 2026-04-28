@@ -10,10 +10,17 @@ function GoogleButton({ className }: { className?: string }) {
   const [loading, setLoading] = useState(false);
 
   const handleClick = async () => {
-    setLoading(true);
-    const result = await signInWithGoogle();
-    if (!result.success) {
-      toast.error(result.response);
+    try {
+      setLoading(true);
+      const result = await signInWithGoogle();
+      if (!result.success) {
+        toast.error(result.response as string);
+        return;
+      }
+      // Full-page redirect to Google; after callback the app opens with ?token=… and OAuthTokenSync persists it.
+    } catch (error: any) {
+      toast.error(error.message || 'An unknown error occurred');
+    } finally {
       setLoading(false);
     }
   };
