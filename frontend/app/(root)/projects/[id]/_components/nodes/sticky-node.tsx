@@ -23,6 +23,7 @@ export interface StickyNodeData {
   label: string;
   color: string;
   onUpdate?: (nodeId: string, data: Partial<{ label: string; color: string }>) => void;
+  onResize?: (nodeId: string, params: { x: number; y: number; width: number; height: number }) => void;
   [key: string]: unknown;
 }
 
@@ -45,7 +46,19 @@ export function StickyNode({ id, data, selected }: NodeProps) {
       className="relative flex h-full w-full flex-col rounded-md shadow-md"
       style={{ backgroundColor: d.color || '#FEF08A' }}
     >
-      <NodeResizer minWidth={120} minHeight={80} isVisible={selected} />
+      <NodeResizer 
+        minWidth={120} 
+        minHeight={80} 
+        isVisible={selected} 
+        onResizeEnd={(_, params) => {
+          d.onResize?.(id, {
+            x: params.x,
+            y: params.y,
+            width: params.width,
+            height: params.height,
+          });
+        }}
+      />
 
       <Handle type="source" position={Position.Top}    id="top"    style={handleStyle} />
       <Handle type="source" position={Position.Bottom} id="bottom" style={handleStyle} />

@@ -7,6 +7,7 @@ export interface ShapeNodeData {
   color: string;
   shape?: 'rect' | 'circle';
   onUpdate?: (nodeId: string, data: Partial<{ label: string; color: string }>) => void;
+  onResize?: (nodeId: string, params: { x: number; y: number; width: number; height: number }) => void;
   [key: string]: unknown;
 }
 
@@ -24,7 +25,19 @@ export function ShapeNode({ id, data, selected }: NodeProps) {
 
   return (
     <div className="relative h-full w-full">
-      <NodeResizer minWidth={60} minHeight={60} isVisible={selected} />
+      <NodeResizer 
+        minWidth={60} 
+        minHeight={60} 
+        isVisible={selected} 
+        onResizeEnd={(_, params) => {
+          d.onResize?.(id, {
+            x: params.x,
+            y: params.y,
+            width: params.width,
+            height: params.height,
+          });
+        }}
+      />
 
       <Handle type="source" position={Position.Top}    id="top"    style={handleStyle} />
       <Handle type="source" position={Position.Bottom} id="bottom" style={handleStyle} />
