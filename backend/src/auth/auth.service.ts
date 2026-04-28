@@ -22,8 +22,8 @@ export class AuthService {
 
     const cookieOptions: CookieOptions = {
       maxAge: 15 * 24 * 60 * 60 * 1000, // 15 days
-      httpOnly: true,
-      secure: true,
+      httpOnly: false,
+      secure: false,
       sameSite: 'none',
     };
 
@@ -104,8 +104,8 @@ export class AuthService {
   async logout(user: User, res: Response): Promise<ApiResponse<void>> {
     try {
       const cookieOptions: CookieOptions = {
-        httpOnly: true,
-        secure: true,
+        httpOnly: false,
+        secure: false,
         sameSite: 'none',
       };
 
