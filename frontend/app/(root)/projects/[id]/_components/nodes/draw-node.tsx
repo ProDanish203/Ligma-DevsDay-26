@@ -24,29 +24,32 @@ export const DrawNode = memo(({ data, selected }: DrawNodeProps) => {
 
   return (
     <>
-      <div 
-        className="relative flex items-center justify-center w-full h-full"
-      >
-        <svg
-          width="100%"
-          height="100%"
-          style={{ overflow: 'visible', width: '100%', height: '100%' }}
-        >
-          <path
-            d={pathD}
-            fill="none"
-            stroke={color}
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+      <div className="relative flex items-center justify-center w-full h-full">
+        <svg width="100%" height="100%" style={{ overflow: 'visible', width: '100%', height: '100%' }}>
+          <path d={pathD} fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-        
+
         {/* We keep standard connection handles for consistency, even on draw nodes */}
-        <Handle type="target" position={Position.Top} className="!bg-brand-primary !size-2 !border-2 !border-white opacity-0 hover:opacity-100" />
-        <Handle type="source" position={Position.Right} className="!bg-brand-primary !size-2 !border-2 !border-white opacity-0 hover:opacity-100" />
-        <Handle type="source" position={Position.Bottom} className="!bg-brand-primary !size-2 !border-2 !border-white opacity-0 hover:opacity-100" />
-        <Handle type="target" position={Position.Left} className="!bg-brand-primary !size-2 !border-2 !border-white opacity-0 hover:opacity-100" />
+        <Handle
+          type="target"
+          position={Position.Top}
+          className="!bg-brand-primary !size-2 !border-2 !border-white opacity-0 hover:opacity-100"
+        />
+        <Handle
+          type="source"
+          position={Position.Right}
+          className="!bg-brand-primary !size-2 !border-2 !border-white opacity-0 hover:opacity-100"
+        />
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          className="!bg-brand-primary !size-2 !border-2 !border-white opacity-0 hover:opacity-100"
+        />
+        <Handle
+          type="target"
+          position={Position.Left}
+          className="!bg-brand-primary !size-2 !border-2 !border-white opacity-0 hover:opacity-100"
+        />
 
         {selected && (
           <div className="absolute -inset-1 rounded border-2 border-brand-primary border-dashed pointer-events-none" />

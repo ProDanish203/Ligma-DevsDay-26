@@ -1,13 +1,4 @@
-export const CURSOR_COLORS = [
-  '#F43F7A',
-  '#818CF8',
-  '#38BDF8',
-  '#34D399',
-  '#FB923C',
-  '#A78BFA',
-  '#FBBF24',
-  '#4ADE80',
-];
+export const CURSOR_COLORS = ['#F43F7A', '#818CF8', '#38BDF8', '#34D399', '#FB923C', '#A78BFA', '#FBBF24', '#4ADE80'];
 
 export function getCursorColor(userId: string): string {
   let hash = 0;

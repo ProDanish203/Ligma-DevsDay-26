@@ -5,13 +5,7 @@ import { TOKEN_KEY } from './lib/constants';
 export function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const publicPaths = ['/login', '/signup'];
-  const privatePaths = [
-    '/',
-    '/projects',
-    '/projects/:id',
-    '/project-invitations',
-    '/settings',
-  ];
+  const privatePaths = ['/', '/projects', '/projects/:id', '/project-invitations', '/settings'];
   const isPublicPath = publicPaths.includes(path);
   const isPrivatePath = privatePaths.includes(path);
 
@@ -25,13 +19,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    '/',
-    '/login',
-    '/signup',
-    '/projects',
-    '/projects/:id',
-    '/project-invitations',
-    '/settings',
-  ],
+  matcher: ['/', '/login', '/signup', '/projects', '/projects/:id', '/project-invitations', '/settings'],
 };

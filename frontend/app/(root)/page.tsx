@@ -64,10 +64,34 @@ export default function DashboardPage() {
 
   const statCards = stats
     ? [
-        { label: 'Total Projects', value: String(stats.totalProjects), icon: FolderOpen, bg: 'bg-pink-50', color: 'text-brand-primary' },
-        { label: 'Team Members', value: String(stats.totalMembers), icon: Users, bg: 'bg-purple-50', color: 'text-purple-500' },
-        { label: 'Shared With Me', value: String(stats.sharedWithMe), icon: Share2, bg: 'bg-sky-50', color: 'text-sky-500' },
-        { label: 'This Month', value: String(stats.thisMonth), icon: Sparkles, bg: 'bg-amber-50', color: 'text-amber-500' },
+        {
+          label: 'Total Projects',
+          value: String(stats.totalProjects),
+          icon: FolderOpen,
+          bg: 'bg-pink-50',
+          color: 'text-brand-primary',
+        },
+        {
+          label: 'Team Members',
+          value: String(stats.totalMembers),
+          icon: Users,
+          bg: 'bg-purple-50',
+          color: 'text-purple-500',
+        },
+        {
+          label: 'Shared With Me',
+          value: String(stats.sharedWithMe),
+          icon: Share2,
+          bg: 'bg-sky-50',
+          color: 'text-sky-500',
+        },
+        {
+          label: 'This Month',
+          value: String(stats.thisMonth),
+          icon: Sparkles,
+          bg: 'bg-amber-50',
+          color: 'text-amber-500',
+        },
       ]
     : [];
 

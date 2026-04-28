@@ -93,14 +93,25 @@ export function useCanvasSocket({ projectId, user }: { projectId: string; user: 
 
     // ── Canvas data events ────────────────────────────────────────────
 
-    socket.on('canvas:state', ({ nodes: n, edges: e, users }: { nodes: CanvasNodeSchema[]; edges: CanvasEdgeSchema[]; users: RemoteUser[] }) => {
-      if (!alive) return;
-      const currentUser = userRef.current;
-      setNodes(n);
-      setEdges(e);
-      setRemoteUsers(users.filter((u) => u.id !== currentUser?.id));
-      setInitialLoadDone(true);
-    });
+    socket.on(
+      'canvas:state',
+      ({
+        nodes: n,
+        edges: e,
+        users,
+      }: {
+        nodes: CanvasNodeSchema[];
+        edges: CanvasEdgeSchema[];
+        users: RemoteUser[];
+      }) => {
+        if (!alive) return;
+        const currentUser = userRef.current;
+        setNodes(n);
+        setEdges(e);
+        setRemoteUsers(users.filter((u) => u.id !== currentUser?.id));
+        setInitialLoadDone(true);
+      },
+    );
 
     socket.on('canvas:user-joined', ({ users }: { users: RemoteUser[] }) => {
       if (!alive) return;
@@ -163,47 +174,79 @@ export function useCanvasSocket({ projectId, user }: { projectId: string; user: 
     };
   }, [projectId, userId]);
 
-  const emitCursorMove = useCallback((x: number, y: number) => {
-    const now = Date.now();
-    if (now - lastEmitRef.current < 33) return;
-    lastEmitRef.current = now;
-    socketRef.current?.emit('canvas:cursor-move', { projectId, x, y });
-  }, [projectId]);
+  const emitCursorMove = useCallback(
+    (x: number, y: number) => {
+      const now = Date.now();
+      if (now - lastEmitRef.current < 33) return;
+      lastEmitRef.current = now;
+      socketRef.current?.emit('canvas:cursor-move', { projectId, x, y });
+    },
+    [projectId],
+  );
 
-  const createNode = useCallback((payload: {
-    type: string; positionX: number; positionY: number;
-    width: number; height: number; data: { label: string; color: string; shape?: 'rect' | 'circle' };
-  }) => {
-    socketRef.current?.emit('canvas:node-add', { ...payload, projectId });
-  }, [projectId]);
+  const createNode = useCallback(
+    (payload: {
+      type: string;
+      positionX: number;
+      positionY: number;
+      width: number;
+      height: number;
+      data: { label: string; color: string; shape?: 'rect' | 'circle' };
+    }) => {
+      socketRef.current?.emit('canvas:node-add', { ...payload, projectId });
+    },
+    [projectId],
+  );
 
-  const updateNode = useCallback((payload: {
-    nodeId: string; positionX?: number; positionY?: number;
-    width?: number; height?: number; data?: Partial<{ label: string; color: string; shape?: 'rect' | 'circle' }>;
-  }) => {
-    socketRef.current?.emit('canvas:node-update', { ...payload, projectId });
-  }, [projectId]);
+  const updateNode = useCallback(
+    (payload: {
+      nodeId: string;
+      positionX?: number;
+      positionY?: number;
+      width?: number;
+      height?: number;
+      data?: Partial<{ label: string; color: string; shape?: 'rect' | 'circle' }>;
+    }) => {
+      socketRef.current?.emit('canvas:node-update', { ...payload, projectId });
+    },
+    [projectId],
+  );
 
-  const deleteNode = useCallback((nodeId: string) => {
-    setNodes((prev) => prev.filter((n) => n.id !== nodeId));
-    socketRef.current?.emit('canvas:node-delete', { projectId, nodeId });
-  }, [projectId]);
+  const deleteNode = useCallback(
+    (nodeId: string) => {
+      setNodes((prev) => prev.filter((n) => n.id !== nodeId));
+      socketRef.current?.emit('canvas:node-delete', { projectId, nodeId });
+    },
+    [projectId],
+  );
 
-  const createEdge = useCallback((payload: {
-    sourceNodeId: string; targetNodeId: string;
-    sourceHandle?: string; targetHandle?: string;
-  }) => {
-    socketRef.current?.emit('canvas:edge-add', { ...payload, projectId });
-  }, [projectId]);
+  const createEdge = useCallback(
+    (payload: { sourceNodeId: string; targetNodeId: string; sourceHandle?: string; targetHandle?: string }) => {
+      socketRef.current?.emit('canvas:edge-add', { ...payload, projectId });
+    },
+    [projectId],
+  );
 
-  const deleteEdge = useCallback((edgeId: string) => {
-    setEdges((prev) => prev.filter((e) => e.id !== edgeId));
-    socketRef.current?.emit('canvas:edge-delete', { projectId, edgeId });
-  }, [projectId]);
+  const deleteEdge = useCallback(
+    (edgeId: string) => {
+      setEdges((prev) => prev.filter((e) => e.id !== edgeId));
+      socketRef.current?.emit('canvas:edge-delete', { projectId, edgeId });
+    },
+    [projectId],
+  );
 
   return {
-    nodes, edges, remoteUsers, cursors,
-    status, initialLoadDone,
-    emitCursorMove, createNode, updateNode, deleteNode, createEdge, deleteEdge,
+    nodes,
+    edges,
+    remoteUsers,
+    cursors,
+    status,
+    initialLoadDone,
+    emitCursorMove,
+    createNode,
+    updateNode,
+    deleteNode,
+    createEdge,
+    deleteEdge,
   };
 }

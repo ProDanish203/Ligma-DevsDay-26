@@ -5,9 +5,7 @@ import { AuthService } from 'src/auth/auth.service';
 
 @Injectable()
 export class WsAuthGuard implements CanActivate {
-  constructor(
-    private readonly authService: AuthService
-  ) { }
+  constructor(private readonly authService: AuthService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const client: Socket = context.switchToWs().getClient();

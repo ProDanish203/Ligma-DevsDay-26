@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { AppGateway } from './gateway';
 import { WsAuthGuard } from '../common/guards/ws-auth.guard';
 import { PrismaService } from '../common/services/prisma.service';
+import { RedisService } from '../common/services/redis.service';
 import { AuthService } from 'src/auth/auth.service';
 import { ConfigService } from '@nestjs/config';
 
@@ -24,7 +25,7 @@ import { ConfigService } from '@nestjs/config';
       inject: [ConfigService],
     }),
   ],
-  providers: [AppGateway, WsAuthGuard, PrismaService, AuthService],
+  providers: [AppGateway, WsAuthGuard, PrismaService, RedisService, AuthService],
   exports: [AppGateway],
 })
-export class GatewayModule { }
+export class GatewayModule {}

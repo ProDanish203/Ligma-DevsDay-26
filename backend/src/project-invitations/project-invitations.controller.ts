@@ -8,12 +8,34 @@ import { QueryParams } from '../common/types/type';
 import { InviteUserDto } from './dto/invite-user.dto';
 import { UpdateInviteStatusDto } from './dto/update-invite-status.dto';
 import { ProjectInvitationsService } from './project-invitations.service';
+import { RedisService } from '../common/services/redis.service';
 
 @Controller('project-invitations')
 @ApiTags('Project Invitations')
 @UseGuards(AuthGuard)
 export class ProjectInvitationsController {
-  constructor(private readonly projectInvitationsService: ProjectInvitationsService) {}
+  constructor(
+    private readonly projectInvitationsService: ProjectInvitationsService,
+    private readonly redisService: RedisService,
+  ) {}
+
+  private readonly defaultCacheTtl = 300;
+
+  private getCacheKey(userId: string, prefix: string, ...params: (string | number | boolean | undefined)[]): string {
+    const keyParts = params.filter((p) => p !== undefined && p !== null && p !== '');
+    return `project-invitations:${userId}:${prefix}:${keyParts.join(':')}`;
+  }
+
+  private async invalidateProjectInvitationsCache(): Promise<void> {
+    const [invitationKeys, projectKeys] = await Promise.all([
+      this.redisService.getClient().keys('project-invitations:*'),
+      this.redisService.getClient().keys('project:*'),
+    ]);
+    const keys = [...invitationKeys, ...projectKeys];
+    if (keys.length) {
+      await this.redisService.deleteMany(keys);
+    }
+  }
 
   @Roles(...Object.values(UserRole))
   @ApiProperty({
@@ -27,7 +49,21 @@ export class ProjectInvitationsController {
   @ApiQuery({ name: 'search', type: String, required: false })
   @Get('me')
   async getCurrentUserInvitations(@CurrentUser() user: User, @Query() query: QueryParams) {
-    return this.projectInvitationsService.getCurrentUserInvitations(user, query);
+    const cacheKey = this.getCacheKey(
+      user.id,
+      'me',
+      query?.page,
+      query?.limit,
+      query?.search,
+      query?.filter,
+      query?.sort,
+    );
+    const cached = await this.redisService.get(cacheKey);
+    if (cached) return cached;
+
+    const result = await this.projectInvitationsService.getCurrentUserInvitations(user, query);
+    await this.redisService.set(cacheKey, result, this.defaultCacheTtl);
+    return result;
   }
 
   @Roles(...Object.values(UserRole))
@@ -46,7 +82,22 @@ export class ProjectInvitationsController {
     @Param('projectId') projectId: string,
     @Query() query: QueryParams,
   ) {
-    return this.projectInvitationsService.getProjectInvitations(user, projectId, query);
+    const cacheKey = this.getCacheKey(
+      user.id,
+      'project',
+      projectId,
+      query?.page,
+      query?.limit,
+      query?.search,
+      query?.filter,
+      query?.sort,
+    );
+    const cached = await this.redisService.get(cacheKey);
+    if (cached) return cached;
+
+    const result = await this.projectInvitationsService.getProjectInvitations(user, projectId, query);
+    await this.redisService.set(cacheKey, result, this.defaultCacheTtl);
+    return result;
   }
 
   @Roles(...Object.values(UserRole))
@@ -57,7 +108,9 @@ export class ProjectInvitationsController {
   })
   @Post('invite')
   async inviteUser(@CurrentUser() user: User, @Body() dto: InviteUserDto) {
-    return this.projectInvitationsService.inviteUser(user, dto);
+    const result = await this.projectInvitationsService.inviteUser(user, dto);
+    await this.invalidateProjectInvitationsCache();
+    return result;
   }
 
   @Roles(...Object.values(UserRole))
@@ -72,7 +125,9 @@ export class ProjectInvitationsController {
     @Param('invitationId') invitationId: string,
     @Body() dto: UpdateInviteStatusDto,
   ) {
-    return this.projectInvitationsService.updateInvitationStatus(user, invitationId, dto);
+    const result = await this.projectInvitationsService.updateInvitationStatus(user, invitationId, dto);
+    await this.invalidateProjectInvitationsCache();
+    return result;
   }
 
   @Roles(...Object.values(UserRole))
@@ -82,6 +137,8 @@ export class ProjectInvitationsController {
   })
   @Delete(':invitationId/revoke')
   async revokeInvitation(@CurrentUser() user: User, @Param('invitationId') invitationId: string) {
-    return this.projectInvitationsService.revokeInvitation(user, invitationId);
+    const result = await this.projectInvitationsService.revokeInvitation(user, invitationId);
+    await this.invalidateProjectInvitationsCache();
+    return result;
   }
 }
