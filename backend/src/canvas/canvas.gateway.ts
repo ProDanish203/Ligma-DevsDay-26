@@ -37,7 +37,7 @@ export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
     private readonly canvasService: CanvasService,
-  ) {}
+  ) { }
 
   async handleConnection(client: Socket) {
     try {
@@ -207,7 +207,7 @@ export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!user) return;
 
     try {
-      const result = await this.canvasService.updateNode(user.id, dto);
+      const result = await this.canvasService.updateNode(user, dto);
       this.server.to(dto.projectId).emit('canvas:node-updated', result.data);
     } catch (error) {
       client.emit('canvas:error', { message: 'Failed to update node' });

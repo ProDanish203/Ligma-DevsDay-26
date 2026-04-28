@@ -123,6 +123,7 @@ function CanvasLoadingSkeleton() {
 /* ------------------------------------------------------------------ */
 
 interface CanvasInnerProps {
+  projectId: string;
   dbNodes: CanvasNodeSchema[];
   dbEdges: CanvasEdgeSchema[];
   remoteUsers: RemoteUser[];
@@ -146,6 +147,7 @@ interface CanvasInnerProps {
 }
 
 function CanvasInner({
+  projectId,
   dbNodes, dbEdges,
   remoteUsers, cursors, status,
   emitCursorMove, createNode, updateNode, deleteNode, createEdge, deleteEdge,
@@ -415,7 +417,7 @@ function CanvasInner({
       </ReactFlow>
 
       <ConnectionBadge status={status} />
-      <CanvasToolbar toolMode={toolMode} onToolChange={setToolMode} />
+      <CanvasToolbar toolMode={toolMode} onToolChange={setToolMode} projectId={projectId} />
 
       {toolMode === 'draw' && (
         <div 
@@ -472,6 +474,7 @@ export function CanvasView({ projectId, user }: { projectId: string; user: Remot
     <div className="h-full w-full overflow-hidden">
       <ReactFlowProvider>
         <CanvasInner
+          projectId={projectId}
           dbNodes={nodes}
           dbEdges={edges}
           remoteUsers={remoteUsers}
