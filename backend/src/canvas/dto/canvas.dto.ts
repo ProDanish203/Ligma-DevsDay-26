@@ -111,3 +111,17 @@ export class DeleteEdgeDto {
   @IsString()
   edgeId: string;
 }
+
+export class MoveNodeDto {
+  @IsString()
+  projectId: string;
+
+  @IsString()
+  nodeId: string;
+
+  @IsNumber()
+  positionX: number;
+
+  @IsNumber()
+  positionY: number;
+}

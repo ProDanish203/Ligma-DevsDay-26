@@ -1,9 +1,9 @@
 'use client';
 
-import { ArrowLeft, Circle, MousePointer, Square, StickyNote } from 'lucide-react';
+import { ArrowLeft, Circle, MousePointer, Pencil, Square, StickyNote, Type } from 'lucide-react';
 import Link from 'next/link';
 
-export type ToolMode = 'select' | 'sticky' | 'rect' | 'circle';
+export type ToolMode = 'select' | 'sticky' | 'rect' | 'circle' | 'draw' | 'text';
 
 interface ToolBtn {
   mode: ToolMode;
@@ -17,6 +17,8 @@ const TOOLS: ToolBtn[] = [
   { mode: 'sticky',  icon: <StickyNote   className="size-4" />, title: 'Sticky note',    activeClass: 'bg-yellow-100 text-yellow-700' },
   { mode: 'rect',    icon: <Square       className="size-4" />, title: 'Rectangle',      activeClass: 'bg-pink-100 text-brand-primary' },
   { mode: 'circle',  icon: <Circle       className="size-4" />, title: 'Circle',         activeClass: 'bg-indigo-100 text-indigo-600' },
+  { mode: 'draw',    icon: <Pencil       className="size-4" />, title: 'Free draw',      activeClass: 'bg-emerald-100 text-emerald-700' },
+  { mode: 'text',    icon: <Type         className="size-4" />, title: 'Text block',     activeClass: 'bg-sky-100 text-sky-700' },
 ];
 
 interface CanvasToolbarProps {

@@ -23,6 +23,7 @@ export function useCanvasSocket({ projectId, user }: { projectId: string; user: 
 
   const socketRef = useRef<Socket | null>(null);
   const lastEmitRef = useRef<number>(0);
+  const lastMoveEmitRef = useRef<number>(0);
 
   // Keep a ref to the user so the effect only depends on user.id (a stable string),
   // not the user object reference. This prevents socket teardown on parent re-renders.
@@ -139,6 +140,11 @@ export function useCanvasSocket({ projectId, user }: { projectId: string; user: 
       setNodes((prev) => prev.filter((n) => n.id !== nodeId));
     });
 
+    socket.on('canvas:node-moved', ({ nodeId, positionX, positionY }: { nodeId: string; positionX: number; positionY: number }) => {
+      if (!alive) return;
+      setNodes((prev) => prev.map((n) => (n.id === nodeId ? { ...n, positionX, positionY } : n)));
+    });
+
     socket.on('canvas:edge-added', (edge: CanvasEdgeSchema) => {
       if (!alive) return;
       setEdges((prev) => (prev.find((e) => e.id === edge.id) ? prev : [...prev, edge]));
@@ -172,14 +178,14 @@ export function useCanvasSocket({ projectId, user }: { projectId: string; user: 
 
   const createNode = useCallback((payload: {
     type: string; positionX: number; positionY: number;
-    width: number; height: number; data: { label: string; color: string; shape?: 'rect' | 'circle' };
+    width: number; height: number; data: { label: string; color: string; shape?: 'rect' | 'circle'; points?: number[]; fontSize?: number };
   }) => {
     socketRef.current?.emit('canvas:node-add', { ...payload, projectId });
   }, [projectId]);
 
   const updateNode = useCallback((payload: {
     nodeId: string; positionX?: number; positionY?: number;
-    width?: number; height?: number; data?: Partial<{ label: string; color: string; shape?: 'rect' | 'circle' }>;
+    width?: number; height?: number; data?: Partial<{ label: string; color: string; shape?: 'rect' | 'circle'; points?: number[]; fontSize?: number }>;
   }) => {
     socketRef.current?.emit('canvas:node-update', { ...payload, projectId });
   }, [projectId]);
@@ -201,9 +207,16 @@ export function useCanvasSocket({ projectId, user }: { projectId: string; user: 
     socketRef.current?.emit('canvas:edge-delete', { projectId, edgeId });
   }, [projectId]);
 
+  const emitNodeMove = useCallback((nodeId: string, positionX: number, positionY: number) => {
+    const now = Date.now();
+    if (now - lastMoveEmitRef.current < 33) return; // ~30fps throttle
+    lastMoveEmitRef.current = now;
+    socketRef.current?.emit('canvas:node-move', { projectId, nodeId, positionX, positionY });
+  }, [projectId]);
+
   return {
     nodes, edges, remoteUsers, cursors,
     status, initialLoadDone,
-    emitCursorMove, createNode, updateNode, deleteNode, createEdge, deleteEdge,
+    emitCursorMove, emitNodeMove, createNode, updateNode, deleteNode, createEdge, deleteEdge,
   };
 }

@@ -4,6 +4,10 @@ export const canvasNodeDataSchema = z.object({
   label: z.string(),
   color: z.string(),
   shape: z.enum(['rect', 'circle']).optional(),
+  /** Flat coordinate array [x1,y1, x2,y2, …] for freehand-draw nodes */
+  points: z.array(z.number()).optional(),
+  /** Font size for text-block nodes */
+  fontSize: z.number().optional(),
 });
 
 export type CanvasNodeDataSchema = z.infer<typeof canvasNodeDataSchema>;

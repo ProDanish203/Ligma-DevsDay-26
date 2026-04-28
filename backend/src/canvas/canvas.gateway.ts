@@ -12,7 +12,7 @@ import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../common/services/prisma.service';
 import { CanvasService } from './canvas.service';
-import { JoinCanvasDto, CursorMoveDto, AddNodeDto, UpdateNodeDto, DeleteNodeDto, AddEdgeDto, DeleteEdgeDto } from './dto/canvas.dto';
+import { JoinCanvasDto, CursorMoveDto, AddNodeDto, UpdateNodeDto, DeleteNodeDto, AddEdgeDto, DeleteEdgeDto, MoveNodeDto } from './dto/canvas.dto';
 import { CanvasUser, CursorPosition } from './types';
 
 interface RoomUser {
@@ -249,5 +249,19 @@ export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect {
     } catch (error) {
       client.emit('canvas:error', { message: 'Failed to delete node' });
     }
+  }
+
+  // Lightweight real-time position broadcast during drag — no DB write.
+  // The final position is persisted via canvas:node-update at drag end.
+  @SubscribeMessage('canvas:node-move')
+  handleNodeMove(@ConnectedSocket() client: Socket, @MessageBody() dto: MoveNodeDto) {
+    const user: CanvasUser = client.data.user;
+    if (!user) return;
+
+    client.to(dto.projectId).emit('canvas:node-moved', {
+      nodeId: dto.nodeId,
+      positionX: dto.positionX,
+      positionY: dto.positionY,
+    });
   }
 }
