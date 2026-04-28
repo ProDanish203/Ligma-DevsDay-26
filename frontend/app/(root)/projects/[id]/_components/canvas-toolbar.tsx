@@ -1,9 +1,9 @@
 'use client';
 
-import { ArrowLeft, Circle, MousePointer, Square, StickyNote } from 'lucide-react';
+import { ArrowLeft, Circle, MousePointer, Square, StickyNote, PenTool } from 'lucide-react';
 import Link from 'next/link';
 
-export type ToolMode = 'select' | 'sticky' | 'rect' | 'circle';
+export type ToolMode = 'select' | 'sticky' | 'rect' | 'circle' | 'draw';
 
 interface ToolBtn {
   mode: ToolMode;
@@ -13,10 +13,11 @@ interface ToolBtn {
 }
 
 const TOOLS: ToolBtn[] = [
-  { mode: 'select',  icon: <MousePointer className="size-4" />, title: 'Select / Move',  activeClass: 'bg-gray-100 text-gray-900' },
-  { mode: 'sticky',  icon: <StickyNote   className="size-4" />, title: 'Sticky note',    activeClass: 'bg-yellow-100 text-yellow-700' },
-  { mode: 'rect',    icon: <Square       className="size-4" />, title: 'Rectangle',      activeClass: 'bg-pink-100 text-brand-primary' },
-  { mode: 'circle',  icon: <Circle       className="size-4" />, title: 'Circle',         activeClass: 'bg-indigo-100 text-indigo-600' },
+  { mode: 'select', icon: <MousePointer className="size-4" />, title: 'Select / Move', activeClass: 'bg-gray-100 text-gray-900' },
+  { mode: 'draw', icon: <PenTool className="size-4" />, title: 'Draw', activeClass: 'bg-emerald-100 text-emerald-700' },
+  { mode: 'sticky', icon: <StickyNote className="size-4" />, title: 'Sticky note', activeClass: 'bg-yellow-100 text-yellow-700' },
+  { mode: 'rect', icon: <Square className="size-4" />, title: 'Rectangle', activeClass: 'bg-pink-100 text-brand-primary' },
+  { mode: 'circle', icon: <Circle className="size-4" />, title: 'Circle', activeClass: 'bg-indigo-100 text-indigo-600' },
 ];
 
 interface CanvasToolbarProps {
@@ -42,11 +43,10 @@ export function CanvasToolbar({ toolMode, onToolChange }: CanvasToolbarProps) {
           key={mode}
           onClick={() => onToolChange(mode)}
           title={title}
-          className={`flex size-9 items-center justify-center rounded-lg transition-colors ${
-            toolMode === mode
-              ? activeClass
-              : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
-          }`}
+          className={`flex size-9 items-center justify-center rounded-lg transition-colors ${toolMode === mode
+            ? activeClass
+            : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+            }`}
         >
           {icon}
         </button>

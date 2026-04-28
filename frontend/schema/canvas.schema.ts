@@ -4,6 +4,7 @@ export const canvasNodeDataSchema = z.object({
   label: z.string(),
   color: z.string(),
   shape: z.enum(['rect', 'circle']).optional(),
+  points: z.array(z.number()).optional(),
 });
 
 export type CanvasNodeDataSchema = z.infer<typeof canvasNodeDataSchema>;

@@ -29,11 +29,12 @@ import type { CanvasNodeSchema, CanvasEdgeSchema } from '@/schema/canvas.schema'
 
 import { StickyNode } from './nodes/sticky-node';
 import { ShapeNode } from './nodes/shape-node';
+import { DrawNode } from './nodes/draw-node';
 import { CursorOverlay } from './cursor-overlay';
 import { CanvasToolbar, type ToolMode } from './canvas-toolbar';
 import { Loader2, Wifi, WifiOff, AlertTriangle } from 'lucide-react';
 
-const nodeTypes = { sticky: StickyNode, shape: ShapeNode };
+const nodeTypes = { sticky: StickyNode, shape: ShapeNode, draw: DrawNode };
 
 function dbNodeToFlow(dbNode: CanvasNodeSchema, onUpdate: (nodeId: string, data: any) => void): Node {
   return {
@@ -126,11 +127,11 @@ interface CanvasInnerProps {
   emitCursorMove: (x: number, y: number) => void;
   createNode: (payload: {
     type: string; positionX: number; positionY: number;
-    width: number; height: number; data: { label: string; color: string; shape?: 'rect' | 'circle' };
+    width: number; height: number; data: { label: string; color: string; shape?: 'rect' | 'circle'; points?: number[] };
   }) => void;
   updateNode: (payload: {
     nodeId: string; positionX?: number; positionY?: number;
-    width?: number; height?: number; data?: Partial<{ label: string; color: string; shape?: 'rect' | 'circle' }>;
+    width?: number; height?: number; data?: Partial<{ label: string; color: string; shape?: 'rect' | 'circle'; points?: number[] }>;
   }) => void;
   deleteNode: (nodeId: string) => void;
   createEdge: (payload: {
@@ -147,6 +148,9 @@ function CanvasInner({
 }: CanvasInnerProps) {
   const { screenToFlowPosition, fitView } = useReactFlow();
   const [toolMode, setToolMode] = useState<ToolMode>('select');
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [screenDrawPoints, setScreenDrawPoints] = useState<number[]>([]);
+  const drawOverlayRef = useRef<HTMLDivElement>(null);
 
   // Stable onUpdate callback using a ref — prevents recreating node data on every render
   const updateNodeRef = useRef(updateNode);
@@ -312,6 +316,59 @@ function CanvasInner({
     emitCursorMove(pos.x, pos.y);
   }, [screenToFlowPosition, emitCursorMove]);
 
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if (toolMode !== 'draw') return;
+    setIsDrawing(true);
+    setScreenDrawPoints([e.clientX, e.clientY]);
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }, [toolMode]);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (toolMode !== 'draw' || !isDrawing) return;
+    setScreenDrawPoints((prev) => [...prev, e.clientX, e.clientY]);
+  }, [toolMode, isDrawing]);
+
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    if (toolMode !== 'draw' || !isDrawing) return;
+    setIsDrawing(false);
+    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+
+    if (screenDrawPoints.length >= 4) {
+      const flowPoints: number[] = [];
+      for (let i = 0; i < screenDrawPoints.length; i += 2) {
+        const flowPos = screenToFlowPosition({ x: screenDrawPoints[i], y: screenDrawPoints[i+1] });
+        flowPoints.push(flowPos.x, flowPos.y);
+      }
+
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (let i = 0; i < flowPoints.length; i += 2) {
+        if (flowPoints[i] < minX) minX = flowPoints[i];
+        if (flowPoints[i + 1] < minY) minY = flowPoints[i + 1];
+        if (flowPoints[i] > maxX) maxX = flowPoints[i];
+        if (flowPoints[i + 1] > maxY) maxY = flowPoints[i + 1];
+      }
+
+      const pad = 4;
+      const bx = minX - pad;
+      const by = minY - pad;
+      const bw = Math.max(maxX - minX + pad * 2, 10);
+      const bh = Math.max(maxY - minY + pad * 2, 10);
+
+      const relPoints = flowPoints.map((v, i) => (i % 2 === 0 ? v - bx : v - by));
+
+      createNode({
+        type: 'draw',
+        positionX: bx,
+        positionY: by,
+        width: bw,
+        height: bh,
+        data: { label: '', color: '#10B981', points: relPoints },
+      });
+    }
+
+    setScreenDrawPoints([]);
+  }, [toolMode, isDrawing, screenDrawPoints, createNode, screenToFlowPosition]);
+
   const cursorClass = toolMode !== 'select' ? 'canvas-crosshair' : '';
 
   return (
@@ -346,6 +403,33 @@ function CanvasInner({
 
       <ConnectionBadge status={status} />
       <CanvasToolbar toolMode={toolMode} onToolChange={setToolMode} />
+
+      {toolMode === 'draw' && (
+        <div 
+          ref={drawOverlayRef}
+          className="absolute inset-0 z-10 cursor-crosshair"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+        >
+          {screenDrawPoints.length >= 4 && (
+            <svg width="100%" height="100%" style={{ pointerEvents: 'none' }}>
+              <path
+                d={`M ${screenDrawPoints[0] - (drawOverlayRef.current?.getBoundingClientRect().left || 0)} ${screenDrawPoints[1] - (drawOverlayRef.current?.getBoundingClientRect().top || 0)} ${screenDrawPoints.slice(2).map((p, i) => {
+                  const offset = i % 2 === 0 ? (drawOverlayRef.current?.getBoundingClientRect().left || 0) : (drawOverlayRef.current?.getBoundingClientRect().top || 0);
+                  return (i % 2 === 0 ? 'L ' : '') + (p - offset);
+                }).join(' ')}`}
+                fill="none"
+                stroke="#10B981"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          )}
+        </div>
+      )}
     </div>
   );
 }
