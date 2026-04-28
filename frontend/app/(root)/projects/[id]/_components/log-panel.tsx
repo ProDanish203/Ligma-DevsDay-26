@@ -5,11 +5,14 @@ import { useQuery } from '@tanstack/react-query';
 import { Activity, Loader2 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { LogEntityType, LogLevel } from '@/lib/enums';
 import { getLogsByEntity } from '@/API/logs.api';
 import type { LogSchema } from '@/schema/logs.schema';
+
+function sortLogsNewestFirst(logs: LogSchema[]): LogSchema[] {
+  return [...logs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
 
 function timeAgo(date: Date): string {
   const secs = Math.floor((Date.now() - date.getTime()) / 1000);
@@ -31,9 +34,12 @@ interface LogPanelProps {
 
 function levelBadgeClass(level: LogLevel) {
   switch (level) {
-    case LogLevel.WARN:  return 'bg-amber-100 text-amber-800 border-amber-200';
-    case LogLevel.ERROR: return 'bg-red-100 text-red-800 border-red-200';
-    default:             return 'bg-gray-100 text-gray-700 border-gray-200';
+    case LogLevel.WARN:
+      return 'bg-amber-100 text-amber-800 border-amber-200';
+    case LogLevel.ERROR:
+      return 'bg-red-100 text-red-800 border-red-200';
+    default:
+      return 'bg-gray-100 text-gray-700 border-gray-200';
   }
 }
 
@@ -43,19 +49,20 @@ function LogEntry({ log }: { log: LogSchema }) {
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-0.5">
-            <span className={cn('inline-flex items-center rounded border px-1.5 py-0 text-[10px] font-semibold uppercase tracking-wide', levelBadgeClass(log.level))}>
+            <span
+              className={cn(
+                'inline-flex items-center rounded border px-1.5 py-0 text-[10px] font-semibold uppercase tracking-wide',
+                levelBadgeClass(log.level),
+              )}
+            >
               {log.level}
             </span>
             <span className="truncate text-xs font-medium text-gray-800">{log.action.replace(/_/g, ' ')}</span>
           </div>
           <p className="text-xs text-gray-600 leading-snug">{log.message}</p>
-          {log.actorUser && (
-            <p className="mt-0.5 text-[11px] text-gray-400">by {log.actorUser.name}</p>
-          )}
+          {log.actorUser && <p className="mt-0.5 text-[11px] text-gray-400">by {log.actorUser.name}</p>}
         </div>
-        <span className="shrink-0 text-[11px] text-gray-400 whitespace-nowrap">
-          {timeAgo(new Date(log.createdAt))}
-        </span>
+        <span className="shrink-0 text-[11px] text-gray-400 whitespace-nowrap">{timeAgo(new Date(log.createdAt))}</span>
       </div>
     </div>
   );
@@ -85,12 +92,10 @@ function LogList({
   // Merge real-time logs (filtered to this entity) with historical data
   const merged = useMemo(() => {
     const historical: LogSchema[] = data ?? [];
-    const live = recentLogs.filter(
-      (l) => l.entityType === entityType && l.entityId === entityId,
-    );
+    const live = recentLogs.filter((l) => l.entityType === entityType && l.entityId === entityId);
     const existingIds = new Set(historical.map((l) => l.id));
     const newLive = live.filter((l) => !existingIds.has(l.id));
-    return [...newLive, ...historical];
+    return sortLogsNewestFirst([...newLive, ...historical]);
   }, [data, recentLogs, entityType, entityId]);
 
   if (isLoading) {
@@ -129,7 +134,12 @@ export function LogPanel({ projectId, selectedNodeId, recentLogs, isOpen, onClos
   }, [selectedNodeId]);
 
   return (
-    <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Sheet
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <SheetContent side="right" className="flex w-[360px] flex-col p-0 sm:max-w-[360px]">
         <SheetHeader className="flex-row items-center justify-between border-b px-4 py-3">
           <SheetTitle className="flex items-center gap-2 text-sm font-semibold">
@@ -138,9 +148,15 @@ export function LogPanel({ projectId, selectedNodeId, recentLogs, isOpen, onClos
           </SheetTitle>
         </SheetHeader>
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as 'project' | 'node')} className="flex flex-1 flex-col overflow-hidden">
+        <Tabs
+          value={tab}
+          onValueChange={(v) => setTab(v as 'project' | 'node')}
+          className="flex flex-1 flex-col overflow-hidden"
+        >
           <TabsList className="mx-4 mt-3 mb-1 h-8 w-auto justify-start rounded-md bg-gray-100 p-0.5">
-            <TabsTrigger value="project" className="h-7 px-3 text-xs">Project</TabsTrigger>
+            <TabsTrigger value="project" className="h-7 px-3 text-xs">
+              Project
+            </TabsTrigger>
             <TabsTrigger value="node" className="h-7 px-3 text-xs" disabled={!selectedNodeId}>
               Node
               {selectedNodeId && (

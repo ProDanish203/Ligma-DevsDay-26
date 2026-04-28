@@ -17,6 +17,12 @@ export type CanvasConnectionStatus = 'connecting' | 'connected' | 'reconnecting'
 
 export type MyProjectAccess = 'OWNER' | UserAccessLevel | null;
 
+function sortLogsNewestFirst(logs: LogSchema[]): LogSchema[] {
+  return [...logs].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+}
+
 export function useCanvasSocket({ projectId, user }: { projectId: string; user: RemoteUser | null }) {
   const [nodes, setNodes] = useState<CanvasNodeSchema[]>([]);
   const [edges, setEdges] = useState<CanvasEdgeSchema[]>([]);
@@ -182,7 +188,7 @@ export function useCanvasSocket({ projectId, user }: { projectId: string; user: 
 
     socket.on('canvas:log-added', (log: LogSchema) => {
       if (!alive) return;
-      setRecentLogs((prev) => [log, ...prev].slice(0, 200));
+      setRecentLogs((prev) => sortLogsNewestFirst([log, ...prev]).slice(0, 200));
     });
 
     return () => {
@@ -281,6 +287,22 @@ export function useCanvasSocket({ projectId, user }: { projectId: string; user: 
     return myEntry.accessLevel === UserAccessLevel.EDITOR || myEntry.accessLevel === UserAccessLevel.LEAD;
   }, [userId, myProjectAccess, nodeAccesses]);
 
+  const canViewNode = useCallback((nodeId: string, createdById: string): boolean => {
+    if (!userId) return false;
+    if (myProjectAccess === 'OWNER' || myProjectAccess === UserAccessLevel.LEAD) return true;
+    if (userId === createdById) return true;
+
+    const acl = nodeAccesses[nodeId] ?? [];
+    if (acl.length === 0) {
+      return myProjectAccess !== null;
+    }
+
+    const myEntry = acl.find((e) => e.userId === userId);
+    if (!myEntry) return false;
+    // Node ACL is explicit. Any listed role can view.
+    return true;
+  }, [userId, myProjectAccess, nodeAccesses]);
+
   const canManageNodeAccess = useCallback((nodeId: string, createdById: string): boolean => {
     if (!userId) return false;
     if (myProjectAccess === 'OWNER' || myProjectAccess === UserAccessLevel.LEAD) return true;
@@ -295,6 +317,6 @@ export function useCanvasSocket({ projectId, user }: { projectId: string; user: 
     status, initialLoadDone,
     nodeAccesses, myProjectAccess, recentLogs,
     emitCursorMove, createNode, updateNode, deleteNode, createEdge, deleteEdge,
-    grantNodeAccess, revokeNodeAccess, canEditNode, canManageNodeAccess,
+    grantNodeAccess, revokeNodeAccess, canViewNode, canEditNode, canManageNodeAccess,
   };
 }

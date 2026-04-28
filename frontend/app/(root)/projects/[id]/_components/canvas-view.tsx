@@ -50,6 +50,9 @@ function dbNodeToFlow(
     type: dbNode.type,
     position: { x: dbNode.positionX, y: dbNode.positionY },
     style: { width: dbNode.width, height: dbNode.height },
+    draggable: canEdit,
+    connectable: canEdit,
+    deletable: canEdit,
     data: { ...(dbNode.data as object), onUpdate, canEdit, onManagePermissions, onResize },
   };
 }
@@ -159,6 +162,7 @@ interface CanvasInnerProps {
     targetHandle?: string;
   }) => void;
   deleteEdge: (edgeId: string) => void;
+  canViewNode: (nodeId: string, createdById: string) => boolean;
   canEditNode: (nodeId: string, createdById: string) => boolean;
   canManageNodeAccess: (nodeId: string, createdById: string) => boolean;
   nodeAccesses: Record<string, import('@/schema/canvas.schema').NodeAccessEntrySchema[]>;
@@ -180,6 +184,7 @@ function CanvasInner({
   deleteNode,
   createEdge,
   deleteEdge,
+  canViewNode,
   canEditNode,
   canManageNodeAccess,
   nodeAccesses,
@@ -225,16 +230,29 @@ function CanvasInner({
     });
   }, []);
 
+  const visibleDbNodes = useMemo(
+    () => dbNodes.filter((n) => canViewNode(n.id, n.createdById)),
+    [dbNodes, canViewNode],
+  );
+
+  const visibleNodeIdSet = useMemo(
+    () => new Set(visibleDbNodes.map((n) => n.id)),
+    [visibleDbNodes],
+  );
+
+  const visibleDbEdges = useMemo(
+    () => dbEdges.filter((e) => visibleNodeIdSet.has(e.sourceNodeId) && visibleNodeIdSet.has(e.targetNodeId)),
+    [dbEdges, visibleNodeIdSet],
+  );
+
   // ── Initialize local state from the already-available data ──────────
   const initialFlowNodes = useMemo(
-    () => dbNodes.map((n) => dbNodeToFlow(n, stableOnUpdate, canEditNode(n.id, n.createdById), stableOnManagePermissions, stableOnResize)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [], // compute once on mount
+    () => visibleDbNodes.map((n) => dbNodeToFlow(n, stableOnUpdate, canEditNode(n.id, n.createdById), stableOnManagePermissions, stableOnResize)),
+    [visibleDbNodes, stableOnUpdate, canEditNode, stableOnManagePermissions, stableOnResize],
   );
   const initialFlowEdges = useMemo(
-    () => dbEdges.map(dbEdgeToFlow),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [], // compute once on mount
+    () => visibleDbEdges.map(dbEdgeToFlow),
+    [visibleDbEdges],
   );
 
   const [nodes, setNodes, onNodesChangeLocal] = useNodesState<Node>(initialFlowNodes);
@@ -264,29 +282,33 @@ function CanvasInner({
     }
     setNodes((prev) => {
       const draggingIds = new Set(prev.filter((n) => n.dragging).map((n) => n.id));
-      const next = dbNodes.map((dbNode) => {
+      const next = visibleDbNodes.map((dbNode) => {
         if (draggingIds.has(dbNode.id)) {
           return prev.find((n) => n.id === dbNode.id) ?? dbNodeToFlow(dbNode, stableOnUpdate, canEditNode(dbNode.id, dbNode.createdById), stableOnManagePermissions, stableOnResize);
         }
         return dbNodeToFlow(dbNode, stableOnUpdate, canEditNode(dbNode.id, dbNode.createdById), stableOnManagePermissions, stableOnResize);
       });
       if (prev.length === next.length && prev.every((n, i) => n.id === next[i].id)) {
-        // Check if positions/dimensions actually changed
+        // Check if meaningful node fields actually changed.
+        // Color/label updates live in node.data, so include data comparison too.
         const changed = next.some((n, i) => {
           const p = prev[i];
           return (
             p.position.x !== n.position.x ||
             p.position.y !== n.position.y ||
             p.style?.width !== n.style?.width ||
-            p.style?.height !== n.style?.height
+            p.style?.height !== n.style?.height ||
+            p.draggable !== n.draggable ||
+            p.connectable !== n.connectable ||
+            p.deletable !== n.deletable ||
+            JSON.stringify(p.data) !== JSON.stringify(n.data)
           );
         });
         if (!changed) return prev;
       }
       return next;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dbNodes]);
+  }, [visibleDbNodes, setNodes, stableOnUpdate, canEditNode, stableOnManagePermissions, stableOnResize]);
 
   useEffect(() => {
     if (isEdgesSeeded.current) {
@@ -294,14 +316,20 @@ function CanvasInner({
       return;
     }
     setEdges((prev) => {
-      const next = dbEdges.map(dbEdgeToFlow);
+      const next = visibleDbEdges.map(dbEdgeToFlow);
       if (prev.length === next.length && prev.every((e, i) => e.id === next[i].id)) {
         return prev;
       }
       return next;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dbEdges]);
+  }, [visibleDbEdges, setEdges]);
+
+  useEffect(() => {
+    if (!selectedNodeId) return;
+    if (!visibleNodeIdSet.has(selectedNodeId)) {
+      setSelectedNodeId(null);
+    }
+  }, [selectedNodeId, visibleNodeIdSet]);
 
   // Escape key → back to select
   useEffect(() => {
@@ -606,6 +634,7 @@ export function CanvasView({ projectId, user }: { projectId: string; user: Remot
     deleteNode,
     createEdge,
     deleteEdge,
+    canViewNode,
     canEditNode,
     canManageNodeAccess,
     grantNodeAccess,
@@ -636,6 +665,7 @@ export function CanvasView({ projectId, user }: { projectId: string; user: Remot
           deleteNode={deleteNode}
           createEdge={createEdge}
           deleteEdge={deleteEdge}
+          canViewNode={canViewNode}
           canEditNode={canEditNode}
           canManageNodeAccess={canManageNodeAccess}
           nodeAccesses={nodeAccesses}

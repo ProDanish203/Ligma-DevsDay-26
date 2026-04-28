@@ -1,23 +1,35 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, FolderOpen, Settings, ChevronLeft, ChevronRight, Mail, MousePointer2 } from 'lucide-react';
+import { LayoutDashboard, FolderOpen, Settings, ChevronLeft, ChevronRight, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
   { href: '/', icon: LayoutDashboard, label: 'Dashboard', exact: true },
   { href: '/projects', icon: FolderOpen, label: 'Projects', exact: false },
   { href: '/invitations', icon: Mail, label: 'Invitations', exact: false },
-  { href: '/collab-demo', icon: MousePointer2, label: 'Live Cursors', exact: false },
 ];
 
 const BOTTOM_ITEMS = [{ href: '/settings', icon: Settings, label: 'Settings', exact: false }];
+const SIDEBAR_COLLAPSED_KEY = 'sidebar-collapsed';
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+    if (stored === 'true') setCollapsed(true);
+    if (stored === 'false') setCollapsed(false);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed));
+  }, [collapsed]);
 
   const isActive = (href: string, exact: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(href + '/');
@@ -100,7 +112,7 @@ export function Sidebar() {
           <button
             onClick={() => setCollapsed(false)}
             title="Expand sidebar"
-            className="mt-1 flex items-center justify-center rounded-lg py-2 text-gray-300 transition-colors hover:bg-gray-50 hover:text-gray-500"
+            className="mt-1 flex items-center justify-center rounded-lg py-2 text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-500"
           >
             <ChevronRight className="size-4" />
           </button>
