@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable, forwardRef } from '@nestjs/common';
 import { LogEntityType, Prisma, User, UserAccessLevel, UserAccessType } from '@db';
 import { PrismaService } from '../common/services/prisma.service';
 import { ApiResponse, QueryParams } from '../common/types/type';
@@ -9,13 +9,15 @@ import { UpdateProjectMemberDto } from './dto/update-project-member.dto';
 import { ProjectSelect, projectSelect } from './queries';
 import { DashboardStatsResponse, GetAllProjectResponse, GetProjectMembersResponse, ProjectWithMyAccess } from './types';
 import { LogsService } from '../logs/logs.service';
+import { TaskBoardService } from 'src/task-board/task-board.service';
 
 @Injectable()
 export class ProjectService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly logsService: LogsService,
-  ) {}
+    @Inject(forwardRef(() => TaskBoardService)) private readonly taskBoardService: TaskBoardService
+  ) { }
 
   private async isProjectOwner(userId: string, projectId: string): Promise<boolean> {
     const project = await this.prismaService.project.findFirst({
@@ -100,6 +102,8 @@ export class ProjectService {
           projectName: project.name,
         },
       });
+
+      this.taskBoardService.getTaskBoard(user, project.id)
 
       return {
         message: 'Project created successfully',
