@@ -139,16 +139,32 @@ export class LogsService {
         return Boolean(access);
       }
       case LogEntityType.NODE: {
-        const access = await this.prismaService.userAccess.findFirst({
-          where: {
-            userId: user.id,
-            entityType: UserAccessType.NODE,
-            entityId,
-            deletedAt: null,
-          },
+        // Check explicit NODE-level access first
+        const nodeAccess = await this.prismaService.userAccess.findFirst({
+          where: { userId: user.id, entityType: UserAccessType.NODE, entityId, deletedAt: null },
           select: { id: true },
         });
-        return Boolean(access);
+        if (nodeAccess) return true;
+
+        // Fall back: any project member can read node logs for nodes in their project
+        const node = await this.prismaService.canvasNode.findFirst({
+          where: { id: entityId, deletedAt: null },
+          select: { projectId: true },
+        });
+        if (!node) return false;
+
+        const project = await this.prismaService.project.findFirst({
+          where: { id: node.projectId, deletedAt: null },
+          select: { userId: true },
+        });
+        if (!project) return false;
+        if (project.userId === user.id) return true;
+
+        const projectAccess = await this.prismaService.userAccess.findFirst({
+          where: { userId: user.id, entityType: UserAccessType.PROJECT, entityId: node.projectId, deletedAt: null },
+          select: { id: true },
+        });
+        return Boolean(projectAccess);
       }
       case LogEntityType.PROJECT_INVITATION: {
         const invitation = await this.prismaService.projectInvitation.findFirst({
