@@ -1,5 +1,6 @@
-import { IsString, IsNumber, IsOptional, IsObject, ValidateNested } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsObject, ValidateNested, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
+import { UserAccessLevel } from '@db';
 import { CanvasNodeData } from '../types';
 
 export class JoinCanvasDto {
@@ -110,4 +111,29 @@ export class DeleteEdgeDto {
 
   @IsString()
   edgeId: string;
+}
+
+export class GrantNodeAccessDto {
+  @IsString()
+  projectId: string;
+
+  @IsString()
+  nodeId: string;
+
+  @IsString()
+  userId: string;
+
+  @IsEnum(UserAccessLevel)
+  accessLevel: UserAccessLevel;
+}
+
+export class RevokeNodeAccessDto {
+  @IsString()
+  projectId: string;
+
+  @IsString()
+  nodeId: string;
+
+  @IsString()
+  accessId: string;
 }

@@ -1,13 +1,206 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
+import { UserAccessLevel, UserAccessType } from '@db';
 import { PrismaService } from '../common/services/prisma.service';
 import { throwError } from '../common/utils/helpers';
 import { ApiResponse } from '../common/types/type';
-import { canvasNodeSelect, CanvasNodeSelect, canvasEdgeSelect, CanvasEdgeSelect } from './queries';
-import { AddNodeDto, DeleteNodeDto, UpdateNodeDto, AddEdgeDto, DeleteEdgeDto } from './dto/canvas.dto';
+import { canvasNodeSelect, CanvasNodeSelect, canvasEdgeSelect, CanvasEdgeSelect, nodeAccessSelect, NodeAccessSelect } from './queries';
+import { AddNodeDto, DeleteNodeDto, UpdateNodeDto, AddEdgeDto, DeleteEdgeDto, GrantNodeAccessDto, RevokeNodeAccessDto } from './dto/canvas.dto';
 
 @Injectable()
 export class CanvasService {
   constructor(private readonly prisma: PrismaService) {}
+
+  // ── Project access helper ────────────────────────────────────────────
+
+  async getMyProjectAccess(userId: string, projectId: string): Promise<'OWNER' | UserAccessLevel | null> {
+    const project = await this.prisma.project.findFirst({
+      where: { id: projectId, deletedAt: null },
+      select: { userId: true },
+    });
+    if (!project) return null;
+    if (project.userId === userId) return 'OWNER';
+
+    const access = await this.prisma.userAccess.findFirst({
+      where: { userId, entityType: UserAccessType.PROJECT, entityId: projectId, deletedAt: null },
+      select: { accessLevel: true },
+    });
+    return access?.accessLevel ?? null;
+  }
+
+  // ── Node permission check ────────────────────────────────────────────
+
+  async canUserMutateNode(
+    userId: string,
+    nodeId: string,
+    projectId: string,
+    action: 'update' | 'delete',
+  ): Promise<boolean> {
+    const project = await this.prisma.project.findFirst({
+      where: { id: projectId, deletedAt: null },
+      select: { userId: true },
+    });
+    if (!project) return false;
+
+    // Project owner always allowed
+    if (project.userId === userId) return true;
+
+    // Check project-level access
+    const projectAccess = await this.prisma.userAccess.findFirst({
+      where: { userId, entityType: UserAccessType.PROJECT, entityId: projectId, deletedAt: null },
+      select: { accessLevel: true },
+    });
+
+    // Project LEAD always allowed
+    if (projectAccess?.accessLevel === UserAccessLevel.LEAD) return true;
+
+    // Fetch node (also validates it belongs to this project)
+    const node = await this.prisma.canvasNode.findFirst({
+      where: { id: nodeId, projectId, deletedAt: null },
+      select: { createdById: true },
+    });
+    if (!node) return false;
+
+    // Node creator always allowed
+    if (node.createdById === userId) return true;
+
+    // Check explicit NODE ACL entries for this node
+    const nodeAcls = await this.prisma.userAccess.findMany({
+      where: { entityType: UserAccessType.NODE, entityId: nodeId, deletedAt: null },
+      select: { userId: true, accessLevel: true },
+    });
+
+    if (nodeAcls.length === 0) {
+      // No explicit ACL — project EDITOR can mutate
+      return projectAccess?.accessLevel === UserAccessLevel.EDITOR;
+    }
+
+    // Explicit ACL exists — caller must be in it with sufficient level
+    const myNodeAccess = nodeAcls.find((a) => a.userId === userId);
+    if (!myNodeAccess) return false;
+
+    if (action === 'update') {
+      return myNodeAccess.accessLevel === UserAccessLevel.EDITOR || myNodeAccess.accessLevel === UserAccessLevel.LEAD;
+    } else {
+      return myNodeAccess.accessLevel === UserAccessLevel.LEAD;
+    }
+  }
+
+  // ── Bulk fetch node accesses for a project (for canvas:state) ────────
+
+  async getNodeAccessesForProject(projectId: string): Promise<Record<string, NodeAccessSelect[]>> {
+    const nodes = await this.prisma.canvasNode.findMany({
+      where: { projectId, deletedAt: null },
+      select: { id: true },
+    });
+    if (nodes.length === 0) return {};
+
+    const nodeIds = nodes.map((n) => n.id);
+    const accesses = await this.prisma.userAccess.findMany({
+      where: { entityType: UserAccessType.NODE, entityId: { in: nodeIds }, deletedAt: null },
+      select: nodeAccessSelect,
+    });
+
+    const grouped: Record<string, NodeAccessSelect[]> = {};
+    for (const access of accesses) {
+      if (!grouped[access.entityId]) grouped[access.entityId] = [];
+      grouped[access.entityId].push(access);
+    }
+    return grouped;
+  }
+
+  // ── Node access management ───────────────────────────────────────────
+
+  async canUserManageNodeAccess(userId: string, nodeId: string, projectId: string): Promise<boolean> {
+    const projectAccess = await this.getMyProjectAccess(userId, projectId);
+    if (projectAccess === 'OWNER' || projectAccess === UserAccessLevel.LEAD) return true;
+
+    const node = await this.prisma.canvasNode.findFirst({
+      where: { id: nodeId, projectId, deletedAt: null },
+      select: { createdById: true },
+    });
+    if (node?.createdById === userId) return true;
+
+    const nodeAccess = await this.prisma.userAccess.findFirst({
+      where: { userId, entityType: UserAccessType.NODE, entityId: nodeId, deletedAt: null },
+      select: { accessLevel: true },
+    });
+    return nodeAccess?.accessLevel === UserAccessLevel.LEAD;
+  }
+
+  async getNodeAccess(nodeId: string, projectId: string): Promise<ApiResponse<NodeAccessSelect[]>> {
+    try {
+      const node = await this.prisma.canvasNode.findFirst({
+        where: { id: nodeId, projectId, deletedAt: null },
+        select: { id: true },
+      });
+      if (!node) throw throwError('Node not found', HttpStatus.NOT_FOUND);
+
+      const accesses = await this.prisma.userAccess.findMany({
+        where: { entityType: UserAccessType.NODE, entityId: nodeId, deletedAt: null },
+        select: nodeAccessSelect,
+      });
+      return { message: 'Node access fetched', success: true, data: accesses };
+    } catch (err: any) {
+      if (err?.status) throw err;
+      throw throwError('Failed to fetch node access', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  async grantNodeAccess(
+    granterId: string,
+    dto: GrantNodeAccessDto,
+  ): Promise<ApiResponse<NodeAccessSelect>> {
+    try {
+      const canManage = await this.canUserManageNodeAccess(granterId, dto.nodeId, dto.projectId);
+      if (!canManage) throw throwError('Permission denied', HttpStatus.FORBIDDEN);
+
+      const access = await this.prisma.userAccess.upsert({
+        where: {
+          userId_entityType_entityId: {
+            userId: dto.userId,
+            entityType: UserAccessType.NODE,
+            entityId: dto.nodeId,
+          },
+        },
+        create: {
+          userId: dto.userId,
+          entityType: UserAccessType.NODE,
+          entityId: dto.nodeId,
+          accessLevel: dto.accessLevel,
+        },
+        update: {
+          accessLevel: dto.accessLevel,
+          deletedAt: null,
+        },
+        select: nodeAccessSelect,
+      });
+      return { message: 'Node access granted', success: true, data: access };
+    } catch (err: any) {
+      if (err?.status) throw err;
+      throw throwError('Failed to grant node access', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  async revokeNodeAccess(
+    revokerId: string,
+    dto: RevokeNodeAccessDto,
+  ): Promise<ApiResponse<void>> {
+    try {
+      const canManage = await this.canUserManageNodeAccess(revokerId, dto.nodeId, dto.projectId);
+      if (!canManage) throw throwError('Permission denied', HttpStatus.FORBIDDEN);
+
+      await this.prisma.userAccess.update({
+        where: { id: dto.accessId },
+        data: { deletedAt: new Date() },
+      });
+      return { message: 'Node access revoked', success: true };
+    } catch (err: any) {
+      if (err?.status) throw err;
+      throw throwError('Failed to revoke node access', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  // ── Canvas nodes ─────────────────────────────────────────────────────
 
   async getCanvasNodes(projectId: string): Promise<ApiResponse<CanvasNodeSelect[]>> {
     try {

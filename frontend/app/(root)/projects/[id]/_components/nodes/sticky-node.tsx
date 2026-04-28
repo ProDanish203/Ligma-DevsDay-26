@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { NodeResizer, Handle, Position, type NodeProps } from '@xyflow/react';
+import { Lock } from 'lucide-react';
 
 const COLOR_OPTIONS = [
   { value: '#FEF08A', label: 'Yellow' },
@@ -22,22 +23,23 @@ const handleStyle = {
 export interface StickyNodeData {
   label: string;
   color: string;
+  canEdit?: boolean;
   onUpdate?: (nodeId: string, data: Partial<{ label: string; color: string }>) => void;
+  onManagePermissions?: (nodeId: string) => void;
   onResize?: (nodeId: string, params: { x: number; y: number; width: number; height: number }) => void;
   [key: string]: unknown;
 }
 
 export function StickyNode({ id, data, selected }: NodeProps) {
   const d = data as StickyNodeData;
+  const canEdit = d.canEdit !== false; // default true if not specified
   const [editing, setEditing] = useState(false);
   const textRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleColorChange = useCallback(
-    (color: string) => {
-      d.onUpdate?.(id, { color });
-    },
-    [id, d],
-  );
+  const handleColorChange = useCallback((color: string) => {
+    if (!canEdit) return;
+    d.onUpdate?.(id, { color });
+  }, [id, d, canEdit]);
 
   const handleBlur = useCallback(() => {
     setEditing(false);
@@ -47,8 +49,9 @@ export function StickyNode({ id, data, selected }: NodeProps) {
   return (
     <div
       className="relative flex h-full w-full flex-col rounded-md shadow-md"
-      style={{ backgroundColor: d.color || '#FEF08A' }}
+      style={{ backgroundColor: d.color || '#FEF08A', opacity: canEdit ? 1 : 0.85 }}
     >
+      {canEdit && <NodeResizer minWidth={120} minHeight={80} isVisible={selected} />}
       <NodeResizer
         minWidth={120}
         minHeight={80}
@@ -68,9 +71,16 @@ export function StickyNode({ id, data, selected }: NodeProps) {
       <Handle type="source" position={Position.Left} id="left" style={handleStyle} />
       <Handle type="source" position={Position.Right} id="right" style={handleStyle} />
 
+      {/* Lock indicator for read-only nodes */}
+      {!canEdit && (
+        <div className="absolute right-1.5 top-1.5 z-10 rounded-full bg-black/20 p-0.5">
+          <Lock className="size-3 text-white/80" />
+        </div>
+      )}
+
       {/* Color swatches */}
       <div className="flex items-center gap-1 p-2">
-        {COLOR_OPTIONS.map((c) => (
+        {canEdit && COLOR_OPTIONS.map((c) => (
           <button
             key={c.value}
             className="size-4 rounded-full border border-black/10 transition-transform hover:scale-110"
@@ -97,10 +107,10 @@ export function StickyNode({ id, data, selected }: NodeProps) {
           />
         ) : (
           <p
-            className="cursor-text break-words whitespace-pre-wrap text-sm text-gray-800 min-h-[2rem]"
-            onDoubleClick={() => setEditing(true)}
+            className={`break-words whitespace-pre-wrap text-sm text-gray-800 min-h-[2rem] ${canEdit ? 'cursor-text' : 'cursor-default'}`}
+            onDoubleClick={canEdit ? () => setEditing(true) : undefined}
           >
-            {d.label || <span className="text-gray-400/80 text-xs">Double-click to edit…</span>}
+            {d.label || <span className="text-gray-400/80 text-xs">{canEdit ? 'Double-click to edit…' : 'Read-only'}</span>}
           </p>
         )}
       </div>
