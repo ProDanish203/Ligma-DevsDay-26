@@ -3,12 +3,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, Shield, Trash2, UserPlus } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -30,17 +25,17 @@ interface NodePermissionsModalProps {
 }
 
 const ACCESS_LEVEL_LABELS: Record<UserAccessLevel, string> = {
-  [UserAccessLevel.VIEWER]:      'Viewer',
+  [UserAccessLevel.VIEWER]: 'Viewer',
   [UserAccessLevel.COMMENTATOR]: 'Commentator',
-  [UserAccessLevel.EDITOR]:      'Editor',
-  [UserAccessLevel.LEAD]:        'Lead',
+  [UserAccessLevel.EDITOR]: 'Editor',
+  [UserAccessLevel.LEAD]: 'Lead',
 };
 
 const ACCESS_LEVEL_COLORS: Record<UserAccessLevel, string> = {
-  [UserAccessLevel.VIEWER]:      'bg-gray-100 text-gray-700',
+  [UserAccessLevel.VIEWER]: 'bg-gray-100 text-gray-700',
   [UserAccessLevel.COMMENTATOR]: 'bg-blue-100 text-blue-700',
-  [UserAccessLevel.EDITOR]:      'bg-green-100 text-green-700',
-  [UserAccessLevel.LEAD]:        'bg-purple-100 text-purple-700',
+  [UserAccessLevel.EDITOR]: 'bg-green-100 text-green-700',
+  [UserAccessLevel.LEAD]: 'bg-purple-100 text-purple-700',
 };
 
 export function NodePermissionsModal({
@@ -69,9 +64,7 @@ export function NodePermissionsModal({
   const alreadyGrantedIds = new Set(accesses.map((a) => a.userId));
 
   // Build selectable members: project members not already granted node access
-  const selectableMembers = [
-    ...(membersData?.members ?? []),
-  ].filter((m) => !alreadyGrantedIds.has(m.userId));
+  const selectableMembers = [...(membersData?.members ?? [])].filter((m) => !alreadyGrantedIds.has(m.userId));
 
   const handleGrant = () => {
     if (!nodeId || !selectedUserId) return;
@@ -82,8 +75,13 @@ export function NodePermissionsModal({
   };
 
   return (
-    <Dialog open={!!nodeId} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-md">
+    <Dialog
+      open={!!nodeId}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <DialogContent className="max-w-xl w-full overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base">
             <Shield className="size-4 text-brand-primary" />
@@ -91,14 +89,14 @@ export function NodePermissionsModal({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="w-full space-y-4 overflow-x-hidden">
           {/* Current ACL list */}
           <div>
-            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
+            <p className="mb-2 w-full wrap-break-word text-xs font-medium uppercase tracking-wide text-gray-500">
               {accesses.length === 0 ? 'No explicit permissions — inherits project access' : 'Explicit access'}
             </p>
             {accesses.length === 0 ? (
-              <p className="rounded-md border border-dashed border-gray-200 py-3 text-center text-sm text-gray-400">
+              <p className="rounded-md border border-dashed border-gray-200 px-3 py-3 text-center text-sm text-gray-400 whitespace-normal wrap-break-word">
                 Anyone with project Editor+ access can edit this node.
               </p>
             ) : (
@@ -113,7 +111,12 @@ export function NodePermissionsModal({
                       <p className="text-xs text-gray-500">{entry.user.email}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={cn('rounded px-2 py-0.5 text-xs font-semibold', ACCESS_LEVEL_COLORS[entry.accessLevel])}>
+                      <span
+                        className={cn(
+                          'rounded px-2 py-0.5 text-xs font-semibold',
+                          ACCESS_LEVEL_COLORS[entry.accessLevel],
+                        )}
+                      >
                         {ACCESS_LEVEL_LABELS[entry.accessLevel]}
                       </span>
                       {canManage && (
@@ -146,9 +149,9 @@ export function NodePermissionsModal({
                 ) : selectableMembers.length === 0 ? (
                   <p className="text-sm text-gray-400">All project members already have explicit node access.</p>
                 ) : (
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2 md:flex-nowrap">
                     <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                      <SelectTrigger className="flex-1 text-sm">
+                      <SelectTrigger className="min-w-0 flex-1 text-sm">
                         <SelectValue placeholder="Select member…" />
                       </SelectTrigger>
                       <SelectContent>
@@ -161,7 +164,7 @@ export function NodePermissionsModal({
                     </Select>
 
                     <Select value={selectedLevel} onValueChange={(v) => setSelectedLevel(v as UserAccessLevel)}>
-                      <SelectTrigger className="w-32 text-sm">
+                      <SelectTrigger className="w-full text-sm md:w-32">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -177,7 +180,7 @@ export function NodePermissionsModal({
                       size="sm"
                       onClick={handleGrant}
                       disabled={!selectedUserId || granting}
-                      className="shrink-0 bg-brand-primary hover:bg-brand-primary/90 text-white"
+                      className="shrink-0 bg-brand-primary text-white hover:bg-brand-primary/90"
                     >
                       <UserPlus className="size-4" />
                     </Button>
