@@ -408,6 +408,32 @@ function CanvasInner({
     if (!stage) return null;
     const scale = stage.scaleX();
     const pos = stage.position();
+    if (node.type === 'shape') {
+      const sx = node.positionX * scale + pos.x;
+      const sy = node.positionY * scale + pos.y;
+      const sw = node.width * scale;
+      const sh = node.height * scale;
+      return (
+        <div style={{ position: 'absolute', left: sx, top: sy, width: sw, height: sh, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <textarea
+            autoFocus
+            defaultValue={editingNode.label}
+            className="h-full w-full resize-none bg-transparent outline-none placeholder:text-gray-200 p-2 text-center font-bold text-white"
+            style={{ fontSize: `${Math.max(10, 13 * scale)}px` }}
+            placeholder="Type here…"
+            onBlur={(e) => {
+              const newLabel = e.target.value;
+              setLocalNodes((prev) => prev.map((n) =>
+                n.id === editingNode.id ? { ...n, data: { ...n.data, label: newLabel } } : n,
+              ));
+              updateNode({ nodeId: editingNode.id, data: { label: newLabel } });
+              setEditingNode(null);
+            }}
+          />
+        </div>
+      );
+    }
+
     const sx = node.positionX * scale + pos.x;
     const sy = (node.positionY + 28) * scale + pos.y;
     const sw = node.width * scale;
@@ -517,7 +543,7 @@ function CanvasInner({
                 }}
                 onClick={(e) => { e.cancelBubble = true; setSelectedId(node.id); setSelectedType('node'); }}
                 onDblClick={() => {
-                  if (node.type === 'sticky') setEditingNode({ id: node.id, label: d.label });
+                  if (node.type === 'sticky' || node.type === 'shape') setEditingNode({ id: node.id, label: d.label });
                   if (node.type === 'text') setEditingTextNode({ id: node.id, label: d.label });
                 }}
                 onMouseEnter={() => setHoveredNodeId(node.id)}
@@ -669,19 +695,21 @@ function CanvasInner({
                         shadowOffsetY={2}
                       />
                     )}
-                    <Text
-                      x={4}
-                      y={0}
-                      width={node.width - 8}
-                      height={node.height}
-                      text={d.label}
-                      fontSize={13}
-                      fontStyle="bold"
-                      fill="#fff"
-                      align="center"
-                      verticalAlign="middle"
-                      wrap="word"
-                    />
+                    {editingNode?.id !== node.id && (
+                      <Text
+                        x={4}
+                        y={0}
+                        width={node.width - 8}
+                        height={node.height}
+                        text={d.label}
+                        fontSize={13}
+                        fontStyle="bold"
+                        fill="#fff"
+                        align="center"
+                        verticalAlign="middle"
+                        wrap="word"
+                      />
+                    )}
                   </>
                 )}
                 {showHandles && renderConnectionHandles(node)}
