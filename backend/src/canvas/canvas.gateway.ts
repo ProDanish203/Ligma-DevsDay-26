@@ -23,6 +23,8 @@ interface RoomUser {
 @WebSocketGateway({
   cors: { origin: '*', credentials: true },
   namespace: '/canvas',
+  pingTimeout: 30000,
+  pingInterval: 25000,
 })
 export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
@@ -58,7 +60,13 @@ export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       client.data.user = user;
       this.logger.log(`Canvas client connected: ${client.id} (${user.email})`);
-    } catch {
+
+      // Signal the client that auth is complete — the client MUST wait for
+      // this event before emitting canvas:join to avoid the race condition
+      // where handleJoin runs before handleConnection finishes.
+      client.emit('canvas:authenticated');
+    } catch (err) {
+      this.logger.warn(`Canvas auth failed for ${client.id}: ${(err as Error).message}`);
       client.emit('error', { message: 'Unauthorized' });
       client.disconnect();
     }
@@ -84,9 +92,27 @@ export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('canvas:join')
   async handleJoin(@ConnectedSocket() client: Socket, @MessageBody() dto: JoinCanvasDto) {
     const user: CanvasUser = client.data.user;
-    if (!user) return;
+    if (!user) {
+      client.emit('canvas:error', { message: 'Not authenticated' });
+      return;
+    }
 
     const { projectId } = dto;
+
+    // Leave any existing rooms first (handles reconnect/re-join without stale data)
+    this.rooms.forEach((roomUsers, existingProjectId) => {
+      if (roomUsers.has(client.id)) {
+        roomUsers.delete(client.id);
+        this.server.to(existingProjectId).emit('canvas:user-left', {
+          userId: user.id,
+          users: Array.from(roomUsers.values()).map((u) => u.user),
+        });
+        client.leave(existingProjectId);
+        if (roomUsers.size === 0) {
+          this.rooms.delete(existingProjectId);
+        }
+      }
+    });
 
     await client.join(projectId);
 
@@ -96,16 +122,27 @@ export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const roomUsers = this.rooms.get(projectId)!;
     roomUsers.set(client.id, { user, cursor: { x: 0, y: 0 } });
 
-    const [nodesResult, edgesResult] = await Promise.all([
-      this.canvasService.getCanvasNodes(projectId),
-      this.canvasService.getCanvasEdges(projectId),
-    ]);
+    try {
+      const [nodesResult, edgesResult] = await Promise.all([
+        this.canvasService.getCanvasNodes(projectId),
+        this.canvasService.getCanvasEdges(projectId),
+      ]);
 
-    client.emit('canvas:state', {
-      nodes: nodesResult.data ?? [],
-      edges: edgesResult.data ?? [],
-      users: Array.from(roomUsers.values()).map((u) => u.user),
-    });
+      if (!client.connected) return;
+
+      client.emit('canvas:state', {
+        nodes: nodesResult.data ?? [],
+        edges: edgesResult.data ?? [],
+        users: Array.from(roomUsers.values()).map((u) => u.user),
+      });
+    } catch (error) {
+      this.logger.error(`Failed to load canvas state for project ${projectId}`, error);
+      client.emit('canvas:state', {
+        nodes: [],
+        edges: [],
+        users: Array.from(roomUsers.values()).map((u) => u.user),
+      });
+    }
 
     client.to(projectId).emit('canvas:user-joined', {
       user,

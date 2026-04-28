@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow,
   Background,
@@ -24,13 +24,14 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { useCanvasSocket, type RemoteUser } from '@/hooks/use-canvas-socket';
+import { useCanvasSocket, type RemoteUser, type CanvasConnectionStatus } from '@/hooks/use-canvas-socket';
 import type { CanvasNodeSchema, CanvasEdgeSchema } from '@/schema/canvas.schema';
 
 import { StickyNode } from './nodes/sticky-node';
 import { ShapeNode } from './nodes/shape-node';
 import { CursorOverlay } from './cursor-overlay';
 import { CanvasToolbar, type ToolMode } from './canvas-toolbar';
+import { Loader2, Wifi, WifiOff, AlertTriangle } from 'lucide-react';
 
 const nodeTypes = { sticky: StickyNode, shape: ShapeNode };
 
@@ -58,34 +59,178 @@ function dbEdgeToFlow(dbEdge: CanvasEdgeSchema): Edge {
   };
 }
 
-function CanvasInner({ projectId, user }: { projectId: string; user: RemoteUser | null }) {
-  const { screenToFlowPosition } = useReactFlow();
+/* ------------------------------------------------------------------ */
+/* Connection status badge                                             */
+/* ------------------------------------------------------------------ */
+function ConnectionBadge({ status }: { status: CanvasConnectionStatus }) {
+  if (status === 'connected') return null;
+
+  const badge = {
+    connecting: {
+      icon: <Loader2 className="size-3.5 animate-spin" />,
+      label: 'Connecting…',
+      cls: 'bg-amber-50 text-amber-700 border-amber-200',
+    },
+    reconnecting: {
+      icon: <Wifi className="size-3.5 animate-pulse" />,
+      label: 'Reconnecting…',
+      cls: 'bg-amber-50 text-amber-700 border-amber-200',
+    },
+    disconnected: {
+      icon: <WifiOff className="size-3.5" />,
+      label: 'Disconnected',
+      cls: 'bg-red-50 text-red-700 border-red-200',
+    },
+    error: {
+      icon: <AlertTriangle className="size-3.5" />,
+      label: 'Connection error',
+      cls: 'bg-red-50 text-red-700 border-red-200',
+    },
+  }[status];
+
+  return (
+    <div className={`absolute right-4 top-4 z-30 flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm backdrop-blur-sm ${badge.cls}`}>
+      {badge.icon}
+      {badge.label}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Loading skeleton                                                    */
+/* ------------------------------------------------------------------ */
+function CanvasLoadingSkeleton() {
+  return (
+    <div className="flex h-full w-full items-center justify-center bg-gray-50">
+      <div className="flex flex-col items-center gap-3">
+        <div className="relative">
+          <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-gray-200 border-t-brand-primary" />
+        </div>
+        <p className="text-sm font-medium text-gray-500">Loading canvas…</p>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Inner canvas — only mounts when data is ready                       */
+/* Receives socket data via props to guarantee non-empty initial state */
+/* ------------------------------------------------------------------ */
+
+interface CanvasInnerProps {
+  dbNodes: CanvasNodeSchema[];
+  dbEdges: CanvasEdgeSchema[];
+  remoteUsers: RemoteUser[];
+  cursors: Map<string, { x: number; y: number }>;
+  status: CanvasConnectionStatus;
+  emitCursorMove: (x: number, y: number) => void;
+  createNode: (payload: {
+    type: string; positionX: number; positionY: number;
+    width: number; height: number; data: { label: string; color: string; shape?: 'rect' | 'circle' };
+  }) => void;
+  updateNode: (payload: {
+    nodeId: string; positionX?: number; positionY?: number;
+    width?: number; height?: number; data?: Partial<{ label: string; color: string; shape?: 'rect' | 'circle' }>;
+  }) => void;
+  deleteNode: (nodeId: string) => void;
+  createEdge: (payload: {
+    sourceNodeId: string; targetNodeId: string;
+    sourceHandle?: string; targetHandle?: string;
+  }) => void;
+  deleteEdge: (edgeId: string) => void;
+}
+
+function CanvasInner({
+  dbNodes, dbEdges,
+  remoteUsers, cursors, status,
+  emitCursorMove, createNode, updateNode, deleteNode, createEdge, deleteEdge,
+}: CanvasInnerProps) {
+  const { screenToFlowPosition, fitView } = useReactFlow();
   const [toolMode, setToolMode] = useState<ToolMode>('select');
 
-  const { nodes: dbNodes, edges: dbEdges, remoteUsers, cursors, emitCursorMove, createNode, updateNode, deleteNode, createEdge, deleteEdge } =
-    useCanvasSocket({ projectId, user });
+  // Stable onUpdate callback using a ref — prevents recreating node data on every render
+  const updateNodeRef = useRef(updateNode);
+  updateNodeRef.current = updateNode;
+  const stableOnUpdate = useCallback((nodeId: string, data: any) => {
+    updateNodeRef.current({ nodeId, data });
+  }, []);
 
-  const [nodes, setNodes, onNodesChangeLocal] = useNodesState<Node>([]);
-  const [edges, setEdges, onEdgesChangeLocal] = useEdgesState<Edge>([]);
+  // ── Initialize local state from the already-available data ──────────
+  // Because CanvasInner only mounts after initialLoadDone=true, dbNodes
+  // already contains the server data. No empty-frame flash.
+  const initialFlowNodes = useMemo(
+    () => dbNodes.map((n) => dbNodeToFlow(n, stableOnUpdate)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [], // compute once on mount
+  );
+  const initialFlowEdges = useMemo(
+    () => dbEdges.map(dbEdgeToFlow),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [], // compute once on mount
+  );
 
-  // Sync DB nodes → local React Flow state (skip dragging nodes to avoid snapping)
+  const [nodes, setNodes, onNodesChangeLocal] = useNodesState<Node>(initialFlowNodes);
+  const [edges, setEdges, onEdgesChangeLocal] = useEdgesState<Edge>(initialFlowEdges);
+
+  // Track whether the initial seed has been consumed so we skip the first effect run
+  const isNodesSeeded = useRef(true);
+  const isEdgesSeeded = useRef(true);
+
+  // Fit view once after mount (nodes are already in state, just need a frame for layout)
+  const hasFittedRef = useRef(false);
   useEffect(() => {
+    if (!hasFittedRef.current && initialFlowNodes.length > 0) {
+      const timer = setTimeout(() => {
+        fitView({ padding: 0.2, duration: 300 });
+        hasFittedRef.current = true;
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Sync subsequent DB changes → local ReactFlow state ──────────────
+  useEffect(() => {
+    // Skip the very first run — we already seeded from useMemo
+    if (isNodesSeeded.current) {
+      isNodesSeeded.current = false;
+      return;
+    }
     setNodes((prev) => {
       const draggingIds = new Set(prev.filter((n) => n.dragging).map((n) => n.id));
-      const onUpdate = (nodeId: string, data: any) => updateNode({ nodeId, data });
-      return dbNodes.map((dbNode) => {
+      const next = dbNodes.map((dbNode) => {
         if (draggingIds.has(dbNode.id)) {
-          return prev.find((n) => n.id === dbNode.id) ?? dbNodeToFlow(dbNode, onUpdate);
+          return prev.find((n) => n.id === dbNode.id) ?? dbNodeToFlow(dbNode, stableOnUpdate);
         }
-        return dbNodeToFlow(dbNode, onUpdate);
+        return dbNodeToFlow(dbNode, stableOnUpdate);
       });
+      // Avoid replacing the array if nothing meaningful changed
+      if (prev.length === next.length && prev.every((n, i) => n.id === next[i].id)) {
+        // Check if positions/data actually changed
+        const changed = next.some((n, i) => {
+          const p = prev[i];
+          return p.position.x !== n.position.x || p.position.y !== n.position.y;
+        });
+        if (!changed) return prev;
+      }
+      return next;
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dbNodes]);
 
-  // Sync DB edges → local React Flow state
   useEffect(() => {
-    setEdges(dbEdges.map(dbEdgeToFlow));
+    if (isEdgesSeeded.current) {
+      isEdgesSeeded.current = false;
+      return;
+    }
+    setEdges((prev) => {
+      const next = dbEdges.map(dbEdgeToFlow);
+      // Skip if same edge IDs in same order — avoids unnecessary ReactFlow re-render
+      if (prev.length === next.length && prev.every((e, i) => e.id === next[i].id)) {
+        return prev;
+      }
+      return next;
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dbEdges]);
 
@@ -97,13 +242,11 @@ function CanvasInner({ projectId, user }: { projectId: string; user: RemoteUser 
   }, []);
 
   const onNodesChange = useCallback((changes: NodeChange<Node>[]) => {
-    // Always apply locally so React Flow state stays in sync (fixes drag)
     onNodesChangeLocal(changes);
 
     for (const change of changes) {
       if (change.type === 'position') {
         const c = change as NodePositionChange;
-        // Emit only when drag finishes
         if (c.dragging === false && c.position) {
           updateNode({ nodeId: c.id, positionX: c.position.x, positionY: c.position.y });
         }
@@ -122,7 +265,6 @@ function CanvasInner({ projectId, user }: { projectId: string; user: RemoteUser 
   }, [onEdgesChangeLocal]);
 
   const onConnect = useCallback((connection: Connection) => {
-    // Optimistically add edge to local state (will be replaced by server broadcast)
     setEdges((eds) => addEdge({
       ...connection,
       type: 'smoothstep',
@@ -185,8 +327,6 @@ function CanvasInner({ projectId, user }: { projectId: string; user: RemoteUser 
         onEdgesDelete={onEdgesDelete}
         onPaneClick={onPaneClick}
         panOnDrag={toolMode === 'select' ? true : [2]}
-        fitView
-        fitViewOptions={{ padding: 0.2 }}
         minZoom={0.1}
         maxZoom={4}
         deleteKeyCode={['Delete', 'Backspace']}
@@ -204,16 +344,49 @@ function CanvasInner({ projectId, user }: { projectId: string; user: RemoteUser 
         <CursorOverlay cursors={cursors} remoteUsers={remoteUsers} />
       </ReactFlow>
 
+      <ConnectionBadge status={status} />
       <CanvasToolbar toolMode={toolMode} onToolChange={setToolMode} />
     </div>
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* Outer wrapper — calls socket hook and gates CanvasInner on data     */
+/* ------------------------------------------------------------------ */
 export function CanvasView({ projectId, user }: { projectId: string; user: RemoteUser | null }) {
+  const {
+    nodes, edges, remoteUsers, cursors,
+    status, initialLoadDone,
+    emitCursorMove, createNode, updateNode, deleteNode, createEdge, deleteEdge,
+  } = useCanvasSocket({ projectId, user });
+
+  // Don't mount ReactFlowProvider or CanvasInner until the initial
+  // canvas:state has arrived — this ensures CanvasInner's useNodesState
+  // is seeded with real data on its very first render. No empty frame.
+  if (!initialLoadDone) {
+    return (
+      <div className="h-full w-full overflow-hidden">
+        <CanvasLoadingSkeleton />
+      </div>
+    );
+  }
+
   return (
     <div className="h-full w-full overflow-hidden">
       <ReactFlowProvider>
-        <CanvasInner projectId={projectId} user={user} />
+        <CanvasInner
+          dbNodes={nodes}
+          dbEdges={edges}
+          remoteUsers={remoteUsers}
+          cursors={cursors}
+          status={status}
+          emitCursorMove={emitCursorMove}
+          createNode={createNode}
+          updateNode={updateNode}
+          deleteNode={deleteNode}
+          createEdge={createEdge}
+          deleteEdge={deleteEdge}
+        />
       </ReactFlowProvider>
     </div>
   );
