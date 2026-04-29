@@ -44,3 +44,11 @@ export enum LogEntityType {
   USER_ACCESS = 'USER_ACCESS',
   USER = 'USER',
 }
+
+export enum NodeIntent {
+  ACTION_ITEM = 'ACTION_ITEM',
+  DECISION = 'DECISION',
+  OPEN_QUESTION = 'OPEN_QUESTION',
+  REFERENCE = 'REFERENCE',
+  UNCLASSIFIED = 'UNCLASSIFIED',
+}

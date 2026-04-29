@@ -1,11 +1,14 @@
 'use client';
 
 import { use, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
 import { CanvasView } from './_components/canvas-view';
 
 export default function ProjectCanvasPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const searchParams = useSearchParams();
+  const focusNodeId = searchParams.get('focusNode') ?? undefined;
   const user = useAuthStore((s) => s.user);
 
   const stableUser = useMemo(
@@ -21,5 +24,5 @@ export default function ProjectCanvasPage({ params }: { params: Promise<{ id: st
     );
   }
 
-  return <CanvasView projectId={id} user={stableUser} />;
+  return <CanvasView projectId={id} user={stableUser} focusNodeId={focusNodeId} />;
 }

@@ -30,13 +30,14 @@ import type { CanvasNodeSchema, CanvasEdgeSchema } from '@/schema/canvas.schema'
 import { StickyNode } from './nodes/sticky-node';
 import { ShapeNode } from './nodes/shape-node';
 import { DrawNode } from './nodes/draw-node';
+import { TextNode } from './nodes/text-node';
 import { CursorOverlay } from './cursor-overlay';
 import { CanvasToolbar, type ToolMode } from './canvas-toolbar';
 import { LogPanel } from './log-panel';
 import { NodePermissionsModal } from './node-permissions-modal';
 import { Loader2, Wifi, WifiOff, AlertTriangle } from 'lucide-react';
 
-const nodeTypes = { sticky: StickyNode, shape: ShapeNode, draw: DrawNode };
+const nodeTypes = { sticky: StickyNode, shape: ShapeNode, draw: DrawNode, text: TextNode };
 
 function dbNodeToFlow(
   dbNode: CanvasNodeSchema,
@@ -53,7 +54,7 @@ function dbNodeToFlow(
     draggable: canEdit,
     connectable: canEdit,
     deletable: canEdit,
-    data: { ...(dbNode.data as object), onUpdate, canEdit, onManagePermissions, onResize },
+    data: { ...(dbNode.data as object), intent: dbNode.intent, onUpdate, canEdit, onManagePermissions, onResize },
   };
 }
 
@@ -137,6 +138,8 @@ interface CanvasInnerProps {
   remoteUsers: RemoteUser[];
   cursors: Map<string, { x: number; y: number }>;
   status: CanvasConnectionStatus;
+  aiClassifyingNodeIds: Set<string>;
+  focusNodeId?: string;
   emitCursorMove: (x: number, y: number) => void;
   createNode: (payload: {
     type: string;
@@ -178,6 +181,8 @@ function CanvasInner({
   remoteUsers,
   cursors,
   status,
+  aiClassifyingNodeIds,
+  focusNodeId,
   emitCursorMove,
   createNode,
   updateNode,
@@ -261,16 +266,24 @@ function CanvasInner({
   const isNodesSeeded = useRef(true);
   const isEdgesSeeded = useRef(true);
 
-  // Fit view once after mount
+  // Fit view once after mount — zoom to focused node if specified
   const hasFittedRef = useRef(false);
   useEffect(() => {
-    if (!hasFittedRef.current && initialFlowNodes.length > 0) {
-      const timer = setTimeout(() => {
+    if (hasFittedRef.current) return;
+    if (initialFlowNodes.length === 0) return;
+
+    const timer = setTimeout(() => {
+      if (focusNodeId) {
+        // Zoom in and center on the specific node
+        fitView({ nodes: [{ id: focusNodeId }], padding: 0.5, duration: 500, maxZoom: 1.5 });
+        // Select the focused node so it's visually highlighted
+        setSelectedNodeId(focusNodeId);
+      } else {
         fitView({ padding: 0.2, duration: 300 });
-        hasFittedRef.current = true;
-      }, 50);
-      return () => clearTimeout(timer);
-    }
+      }
+      hasFittedRef.current = true;
+    }, 100);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -330,6 +343,16 @@ function CanvasInner({
       setSelectedNodeId(null);
     }
   }, [selectedNodeId, visibleNodeIdSet]);
+
+  useEffect(() => {
+    setNodes((prev) =>
+      prev.map((n) => {
+        const classifying = aiClassifyingNodeIds.has(n.id);
+        if ((n.data as any).aiClassifying === classifying) return n;
+        return { ...n, data: { ...n.data, aiClassifying: classifying } };
+      }),
+    );
+  }, [aiClassifyingNodeIds, setNodes]);
 
   // Escape key → back to select
   useEffect(() => {
@@ -412,22 +435,31 @@ function CanvasInner({
 
   const onPaneClick = useCallback(
     (event: React.MouseEvent) => {
-      if (toolMode === 'select') return;
+      if (toolMode === 'select' || toolMode === 'draw') return;
       const pos = screenToFlowPosition({ x: event.clientX, y: event.clientY });
-      const w = toolMode === 'sticky' ? 200 : toolMode === 'circle' ? 120 : 160;
-      const h = toolMode === 'sticky' ? 150 : toolMode === 'circle' ? 120 : 100;
+
+      const sizes: Record<string, { w: number; h: number }> = {
+        sticky: { w: 200, h: 150 },
+        circle: { w: 120, h: 120 },
+        text:   { w: 200, h: 80 },
+      };
+      const { w, h } = sizes[toolMode] ?? { w: 160, h: 100 };
+
+      const nodeData: Record<string, { type: string; data: Record<string, unknown> }> = {
+        sticky: { type: 'sticky', data: { label: '', color: '#FEF08A' } },
+        rect:   { type: 'shape',  data: { label: '', color: '#F43F7A', shape: 'rect' } },
+        circle: { type: 'shape',  data: { label: '', color: '#818CF8', shape: 'circle' } },
+        text:   { type: 'text',   data: { label: '', color: '#1f2937' } },
+      };
+
+      const { type, data } = nodeData[toolMode] ?? nodeData.rect;
       createNode({
-        type: toolMode === 'sticky' ? 'sticky' : 'shape',
+        type,
         positionX: pos.x - w / 2,
         positionY: pos.y - h / 2,
         width: w,
         height: h,
-        data:
-          toolMode === 'sticky'
-            ? { label: '', color: '#FEF08A' }
-            : toolMode === 'rect'
-              ? { label: '', color: '#F43F7A', shape: 'rect' }
-              : { label: '', color: '#818CF8', shape: 'circle' },
+        data: data as any,
       });
       setToolMode('select');
     },
@@ -552,6 +584,7 @@ function CanvasInner({
 
       <ConnectionBadge status={status} />
       <CanvasToolbar
+        projectId={projectId}
         toolMode={toolMode}
         onToolChange={setToolMode}
         logPanelOpen={logPanelOpen}
@@ -618,7 +651,7 @@ function CanvasInner({
 /* ------------------------------------------------------------------ */
 /* Outer wrapper — calls socket hook and gates CanvasInner on data     */
 /* ------------------------------------------------------------------ */
-export function CanvasView({ projectId, user }: { projectId: string; user: RemoteUser | null }) {
+export function CanvasView({ projectId, user, focusNodeId }: { projectId: string; user: RemoteUser | null; focusNodeId?: string }) {
   const {
     nodes,
     edges,
@@ -628,6 +661,7 @@ export function CanvasView({ projectId, user }: { projectId: string; user: Remot
     initialLoadDone,
     nodeAccesses,
     recentLogs,
+    aiClassifyingNodeIds,
     emitCursorMove,
     createNode,
     updateNode,
@@ -659,6 +693,8 @@ export function CanvasView({ projectId, user }: { projectId: string; user: Remot
           remoteUsers={remoteUsers}
           cursors={cursors}
           status={status}
+          aiClassifyingNodeIds={aiClassifyingNodeIds}
+          focusNodeId={focusNodeId}
           emitCursorMove={emitCursorMove}
           createNode={createNode}
           updateNode={updateNode}

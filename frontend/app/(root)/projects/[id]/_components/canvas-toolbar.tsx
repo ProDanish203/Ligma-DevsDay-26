@@ -1,9 +1,9 @@
 'use client';
 
-import { ArrowLeft, Circle, ClipboardList, MousePointer, Shield, Square, StickyNote, PenTool } from 'lucide-react';
+import { ArrowLeft, Circle, ClipboardList, LayoutList, MousePointer, Shield, Square, StickyNote, PenTool, Type } from 'lucide-react';
 import Link from 'next/link';
 
-export type ToolMode = 'select' | 'sticky' | 'rect' | 'circle' | 'draw';
+export type ToolMode = 'select' | 'sticky' | 'rect' | 'circle' | 'draw' | 'text';
 
 interface ToolBtn {
   mode: ToolMode;
@@ -20,6 +20,7 @@ const TOOLS: ToolBtn[] = [
     activeClass: 'bg-gray-100 text-gray-900',
   },
   { mode: 'draw', icon: <PenTool className="size-4" />, title: 'Draw', activeClass: 'bg-emerald-100 text-emerald-700' },
+  { mode: 'text', icon: <Type className="size-4" />, title: 'Text box', activeClass: 'bg-sky-100 text-sky-700' },
   {
     mode: 'sticky',
     icon: <StickyNote className="size-4" />,
@@ -41,6 +42,7 @@ const TOOLS: ToolBtn[] = [
 ];
 
 interface CanvasToolbarProps {
+  projectId: string;
   toolMode: ToolMode;
   onToolChange: (mode: ToolMode) => void;
   logPanelOpen: boolean;
@@ -51,6 +53,7 @@ interface CanvasToolbarProps {
 }
 
 export function CanvasToolbar({
+  projectId,
   toolMode,
   onToolChange,
   logPanelOpen,
@@ -103,6 +106,15 @@ export function CanvasToolbar({
           <Shield className="size-4" />
         </button>
       )}
+
+      {/* Task board link */}
+      <Link
+        href={`/projects/${projectId}/task-board`}
+        title="Task board"
+        className="flex size-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-pink-50 hover:text-brand-primary"
+      >
+        <LayoutList className="size-4" />
+      </Link>
 
       {/* Activity log toggle */}
       <button

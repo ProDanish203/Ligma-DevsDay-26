@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { UserAccessLevel } from '@/lib/enums';
+import { NodeIntent, UserAccessLevel } from '@/lib/enums';
 
 export const canvasNodeDataSchema = z.object({
   label: z.string(),
@@ -19,6 +19,7 @@ export const canvasNodeSchema = z.object({
   width: z.number(),
   height: z.number(),
   data: canvasNodeDataSchema,
+  intent: z.nativeEnum(NodeIntent).default(NodeIntent.UNCLASSIFIED),
   createdById: z.string().uuid(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),

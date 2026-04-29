@@ -57,7 +57,7 @@ export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect, 
     private readonly canvasService: CanvasService,
     private readonly redisService: RedisService,
     private readonly logsService: LogsService,
-  ) {}
+  ) { }
 
   async afterInit(server: Server) {
     await this.setupRedisAdapter(server);
@@ -78,8 +78,7 @@ export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect, 
       this.logger.log('Redis adapter initialized for /canvas namespace');
     } catch (error) {
       this.logger.warn(
-        `Redis adapter not initialized for /canvas; falling back to single-instance mode: ${
-          (error as Error).message
+        `Redis adapter not initialized for /canvas; falling back to single-instance mode: ${(error as Error).message
         }`,
       );
     }
@@ -301,8 +300,23 @@ export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect, 
         return;
       }
 
-      const result = await this.canvasService.updateNode(user.id, dto);
+      const signal: { started: boolean; onDone?: (result: { taskCreated: boolean; updatedNode: any }) => void } = {
+        started: false,
+        onDone: ({ taskCreated, updatedNode }) => {
+          this.server.to(dto.projectId).emit('canvas:node-updated', updatedNode);
+          this.server.to(dto.projectId).emit(
+            taskCreated ? 'canvas:ai-task-created' : 'canvas:ai-done',
+            { nodeId: dto.nodeId },
+          );
+        },
+      };
+
+      const result = await this.canvasService.updateNode(user, dto, signal);
       this.server.to(dto.projectId).emit('canvas:node-updated', result.data);
+
+      if (signal.started) {
+        this.server.to(dto.projectId).emit('canvas:ai-classifying', { nodeId: dto.nodeId });
+      }
 
       // Only log data changes (not position/dimension moves to avoid log spam)
       if (dto.data !== undefined) {

@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback, useRef, useState } from 'react';
 import { NodeResizer, Handle, Position, type NodeProps } from '@xyflow/react';
 import { Lock } from 'lucide-react';
 
@@ -26,6 +27,13 @@ export function ShapeNode({ id, data, selected }: NodeProps) {
   const d = data as ShapeNodeData;
   const isCircle = d.shape === 'circle';
   const canEdit = d.canEdit !== false;
+  const [editing, setEditing] = useState(false);
+  const textRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleBlur = useCallback(() => {
+    setEditing(false);
+    if (textRef.current) d.onUpdate?.(id, { label: textRef.current.value });
+  }, [id, d]);
 
   return (
     <div className="relative h-full w-full">
@@ -56,18 +64,32 @@ export function ShapeNode({ id, data, selected }: NodeProps) {
       )}
 
       <div
-        className="flex h-full w-full cursor-default items-center justify-center select-none"
+        className="flex h-full w-full items-center justify-center"
         style={{
           backgroundColor: d.color || '#FDA4C4',
           borderRadius: isCircle ? '50%' : '8px',
           outline: selected ? `2px solid ${d.color}` : '2px solid transparent',
           outlineOffset: 2,
           opacity: canEdit ? 1 : 0.85,
+          cursor: canEdit ? 'default' : 'default',
         }}
+        onDoubleClick={canEdit ? () => setEditing(true) : undefined}
       >
-        <span className="max-w-[90%] wrap-break-word px-2 text-center text-sm font-medium text-white drop-shadow-sm">
-          {d.label}
-        </span>
+        {editing ? (
+          <textarea
+            ref={textRef}
+            defaultValue={d.label}
+            onBlur={handleBlur}
+            autoFocus
+            className="w-[85%] resize-none bg-transparent text-center text-sm font-medium text-white outline-none placeholder:text-white/50"
+            style={{ maxHeight: '80%' }}
+            placeholder="Type here…"
+          />
+        ) : (
+          <span className="max-w-[90%] break-words px-2 text-center text-sm font-medium text-white drop-shadow-sm select-none">
+            {d.label || (canEdit && <span className="text-white/40 text-xs">Double-click to edit…</span>)}
+          </span>
+        )}
       </div>
     </div>
   );

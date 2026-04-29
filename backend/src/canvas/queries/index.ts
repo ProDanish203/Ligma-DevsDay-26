@@ -21,6 +21,7 @@ export const canvasNodeSelect = {
   width: true,
   height: true,
   data: true,
+  intent: true,
   createdById: true,
   createdAt: true,
   updatedAt: true,
