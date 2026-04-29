@@ -4,6 +4,7 @@ import './globals.css';
 import { cn } from '@/lib/utils';
 import ReactQueryProvider from '@/providers/react-query';
 import { OAuthTokenSync } from '@/components/auth/oauth-token-sync';
+import { AuthGuard } from '@/components/auth/auth-guard';
 import { Toaster } from 'sonner';
 
 const poppins = Poppins({
@@ -36,7 +37,7 @@ export default function RootLayout({
         <ReactQueryProvider>
           <OAuthTokenSync />
           <Toaster richColors position="top-right" />
-          {children}
+          <AuthGuard>{children}</AuthGuard>
         </ReactQueryProvider>
       </body>
     </html>
