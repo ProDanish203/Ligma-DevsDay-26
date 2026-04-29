@@ -146,7 +146,7 @@ export default function DashboardPage() {
                 {stats.recentProjects.map((project, i) => (
                   <Link
                     key={project.id}
-                    href="/projects"
+                    href={`/projects/${project.id}`}
                     className="group cursor-pointer overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition-all duration-200 hover:border-pink-200 hover:shadow-md hover:shadow-pink-50"
                   >
                     <div className={`relative h-28 bg-linear-to-br ${PROJECT_GRADIENTS[i % PROJECT_GRADIENTS.length]}`}>
