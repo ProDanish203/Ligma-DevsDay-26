@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
+import * as Y from 'yjs';
 import { toast } from 'sonner';
 import { TOKEN_KEY } from '@/lib/constants';
 import { UserAccessLevel } from '@/lib/enums';
@@ -35,6 +36,7 @@ export function useCanvasSocket({ projectId, user }: { projectId: string; user: 
   const [myProjectAccess, setMyProjectAccess] = useState<MyProjectAccess>(null);
   const [recentLogs, setRecentLogs] = useState<LogSchema[]>([]);
   const [aiClassifyingNodeIds, setAiClassifyingNodeIds] = useState<Set<string>>(new Set());
+  const [yDoc, setYDoc] = useState<Y.Doc | null>(null);
 
   const socketRef = useRef<Socket | null>(null);
   const lastEmitRef = useRef<number>(0);
@@ -62,6 +64,10 @@ export function useCanvasSocket({ projectId, user }: { projectId: string; user: 
     // Reset state for fresh connection
     setStatus('connecting');
     setInitialLoadDone(false);
+
+    // Fresh Y.Doc for this project session
+    const ydoc = new Y.Doc();
+    setYDoc(ydoc);
 
     const socket = io(`${socketUrl}/canvas`, {
       auth: { token },
@@ -209,8 +215,30 @@ export function useCanvasSocket({ projectId, user }: { projectId: string; user: 
       setAiClassifyingNodeIds((prev) => { const s = new Set(prev); s.delete(nodeId); return s; });
     });
 
+    // ── Yjs real-time text sync ───────────────────────────────────────
+
+    socket.on('canvas:yjs-state', ({ update }: { update: ArrayBuffer | Uint8Array }) => {
+      if (!alive) return;
+      Y.applyUpdate(ydoc, new Uint8Array(update instanceof ArrayBuffer ? update : update), 'remote');
+    });
+
+    socket.on('canvas:yjs-update', ({ update }: { update: ArrayBuffer | Uint8Array }) => {
+      if (!alive) return;
+      Y.applyUpdate(ydoc, new Uint8Array(update instanceof ArrayBuffer ? update : update), 'remote');
+    });
+
+    // Forward local Yjs mutations to the server (skip echoing remote updates)
+    const yjsUpdateHandler = (update: Uint8Array, origin: unknown) => {
+      if (origin === 'remote' || !alive) return;
+      socket.emit('canvas:yjs-update', { projectId, update });
+    };
+    ydoc.on('update', yjsUpdateHandler);
+
     return () => {
       alive = false;
+      ydoc.off('update', yjsUpdateHandler);
+      ydoc.destroy();
+      setYDoc(null);
       socket.emit('canvas:leave', { projectId });
       socket.removeAllListeners();
       socket.io.removeAllListeners();
@@ -334,6 +362,7 @@ export function useCanvasSocket({ projectId, user }: { projectId: string; user: 
     nodes, edges, remoteUsers, cursors,
     status, initialLoadDone,
     nodeAccesses, myProjectAccess, recentLogs, aiClassifyingNodeIds,
+    yDoc,
     emitCursorMove, createNode, updateNode, deleteNode, createEdge, deleteEdge,
     grantNodeAccess, revokeNodeAccess, canViewNode, canEditNode, canManageNodeAccess,
   };
