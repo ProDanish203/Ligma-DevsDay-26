@@ -5,8 +5,9 @@ import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common
 import { ConfigService } from '@nestjs/config';
 import { generateText, LanguageModel, Output } from 'ai';
 import { ZodType } from 'zod';
-import { IntentClassificationSchema } from './schema';
+import { CanvasSummary, CanvasSummarySchema, IntentClassificationSchema } from './schema';
 import { INTENT_CLASSIFICATION_SYSTEM_PROMPT } from './prompts/intent-classification.prompt';
+import { CANVAS_SUMMARY_SYSTEM_PROMPT } from './prompts/canvas-summary.prompt';
 
 @Injectable()
 export class AiService {
@@ -77,6 +78,21 @@ export class AiService {
             console.error('Error generating text:', error);
             throw new InternalServerErrorException('Failed to generate text');
         }
+    }
+
+    async generateCanvasSummary(
+        nodes: { id: string; type: string; intent: string; label?: string }[],
+    ): Promise<CanvasSummary> {
+        const nodeList = nodes
+            .map((n) => `[id:${n.id}] [type:${n.type}] [intent:${n.intent}] "${n.label ?? '(empty)'}"`)
+            .join('\n');
+
+        return this.generateStructuredData<CanvasSummary>(
+            `Canvas nodes:\n${nodeList}`,
+            CanvasSummarySchema,
+            'CanvasSummary',
+            CANVAS_SUMMARY_SYSTEM_PROMPT,
+        );
     }
 
     async classifyIntent(text: string): Promise<{ intent: NodeIntent; title?: string; description?: string | null }> {

@@ -7,6 +7,7 @@ import { canvasNodeSelect, CanvasNodeSelect, canvasEdgeSelect, CanvasEdgeSelect,
 import { AddNodeDto, DeleteNodeDto, UpdateNodeDto, AddEdgeDto, DeleteEdgeDto, GrantNodeAccessDto, RevokeNodeAccessDto } from './dto/canvas.dto';
 import { AiService } from '../ai/ai.service';
 import { NodeIntent } from '@db';
+import { CanvasSummary } from '../ai/schema';
 import { TaskBoardService } from 'src/task-board/task-board.service';
 import { CanvasUser } from './types';
 
@@ -73,20 +74,15 @@ export class CanvasService {
       select: { userId: true, accessLevel: true },
     });
 
-    if (nodeAcls.length === 0) {
-      // No explicit ACL — project EDITOR can mutate
-      return projectAccess?.accessLevel === UserAccessLevel.EDITOR;
-    }
-
-    // Explicit ACL exists — caller must be in it with sufficient level
+    // Nodes are unrestricted by default — explicit ACL entries add per-user restrictions.
     const myNodeAccess = nodeAcls.find((a) => a.userId === userId);
-    if (!myNodeAccess) return false;
-
-    if (action === 'update') {
-      return myNodeAccess.accessLevel === UserAccessLevel.EDITOR || myNodeAccess.accessLevel === UserAccessLevel.LEAD;
-    } else {
-      return myNodeAccess.accessLevel === UserAccessLevel.LEAD;
+    if (!myNodeAccess) {
+      // No explicit restriction on this user — any project member can mutate.
+      return projectAccess !== null;
     }
+
+    // User has an explicit ACL entry — honour the restriction.
+    return myNodeAccess.accessLevel === UserAccessLevel.EDITOR || myNodeAccess.accessLevel === UserAccessLevel.LEAD;
   }
 
   // ── Bulk fetch node accesses for a project (for canvas:state) ────────
@@ -358,6 +354,42 @@ export class CanvasService {
     } catch (err: any) {
       if (err?.status) throw err;
       throw throwError('Failed to delete edge', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  async exportProjectSummary(
+    userId: string,
+    projectId: string,
+  ): Promise<ApiResponse<{ summary: CanvasSummary; generatedAt: string; projectId: string }>> {
+    try {
+      const access = await this.getMyProjectAccess(userId, projectId);
+      if (!access) throw throwError('Project not found or access denied', HttpStatus.FORBIDDEN);
+
+      const nodes = await this.prisma.canvasNode.findMany({
+        where: { projectId, deletedAt: null },
+        select: { id: true, type: true, intent: true, data: true },
+        orderBy: { createdAt: 'asc' },
+      });
+
+      if (nodes.length === 0) throw throwError('No nodes on this canvas', HttpStatus.BAD_REQUEST);
+
+      const aiNodes = nodes.map((n) => ({
+        id: n.id,
+        type: n.type,
+        intent: n.intent,
+        label: (n.data as Record<string, unknown>)?.label as string | undefined,
+      }));
+
+      const summary = await this.aiService.generateCanvasSummary(aiNodes);
+
+      return {
+        message: 'Canvas summary generated',
+        success: true,
+        data: { summary, generatedAt: new Date().toISOString(), projectId },
+      };
+    } catch (err: any) {
+      if (err?.status) throw err;
+      throw throwError('Failed to generate canvas summary', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 

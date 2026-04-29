@@ -1,6 +1,28 @@
 import { NodeIntent } from "@db";
 import { z } from "zod";
 
+export const CanvasSummarySchema = z.object({
+    overview: z.string().describe('A concise 2-4 sentence narrative summarising the project canvas — what was discussed, what was decided, and what remains open.'),
+    decisions: z.array(z.object({
+        text: z.string().describe('The decision that was made, in one clear sentence.'),
+        nodeId: z.string().describe('The ID of the canvas node this decision came from.'),
+    })).describe('All decisions made on this canvas.'),
+    actionItems: z.array(z.object({
+        text: z.string().describe('The action item or task, in one clear sentence.'),
+        nodeId: z.string().describe('The ID of the canvas node this action item came from.'),
+    })).describe('All action items or tasks identified on this canvas.'),
+    openQuestions: z.array(z.object({
+        text: z.string().describe('The open question or unresolved uncertainty.'),
+        nodeId: z.string().describe('The ID of the canvas node this question came from.'),
+    })).describe('All open questions or unresolved topics on this canvas.'),
+    references: z.array(z.object({
+        text: z.string().describe('The reference or resource note.'),
+        nodeId: z.string().describe('The ID of the canvas node this reference came from.'),
+    })).describe('All reference or informational nodes on this canvas.'),
+});
+
+export type CanvasSummary = z.infer<typeof CanvasSummarySchema>;
+
 export const IntentClassificationSchema = z.object({
     intent: z.enum([NodeIntent.ACTION_ITEM, NodeIntent.DECISION, NodeIntent.OPEN_QUESTION, NodeIntent.REFERENCE, NodeIntent.UNCLASSIFIED]).describe(`
         Please classify the intent of the following sticky note text into one of the following intents:
