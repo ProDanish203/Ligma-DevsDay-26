@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, Circle, ClipboardList, LayoutList, MousePointer, Shield, Square, StickyNote, PenTool, Type } from 'lucide-react';
+import { ArrowLeft, Circle, ClipboardList, LayoutList, MousePointer, Shield, Sparkles, Square, StickyNote, PenTool, Type } from 'lucide-react';
 import Link from 'next/link';
 
 export type ToolMode = 'select' | 'sticky' | 'rect' | 'circle' | 'draw' | 'text';
@@ -50,6 +50,8 @@ interface CanvasToolbarProps {
   selectedNodeId: string | null;
   canManageSelectedNode: boolean;
   onOpenPermissions: () => void;
+  onOpenSummary: () => void;
+  summaryLoading?: boolean;
 }
 
 export function CanvasToolbar({
@@ -61,6 +63,8 @@ export function CanvasToolbar({
   selectedNodeId,
   canManageSelectedNode,
   onOpenPermissions,
+  onOpenSummary,
+  summaryLoading = false,
 }: CanvasToolbarProps) {
   return (
     <div className="absolute left-4 top-1/2 z-20 flex -translate-y-1/2 flex-col gap-1 rounded-xl border border-gray-200 bg-white p-1.5 shadow-lg">
@@ -126,6 +130,16 @@ export function CanvasToolbar({
           }`}
       >
         <ClipboardList className="size-4" />
+      </button>
+
+      {/* AI summary export */}
+      <button
+        onClick={onOpenSummary}
+        disabled={summaryLoading}
+        title="AI Summary Export"
+        className="flex size-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-yellow-50 hover:text-yellow-600 disabled:opacity-50"
+      >
+        <Sparkles className={`size-4 ${summaryLoading ? 'animate-pulse text-yellow-500' : ''}`} />
       </button>
     </div>
   );

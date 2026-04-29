@@ -43,6 +43,26 @@ export const canvasEdgeSchema = z.object({
 
 export type CanvasEdgeSchema = z.infer<typeof canvasEdgeSchema>;
 
+const summaryItemSchema = z.object({ text: z.string(), nodeId: z.string() });
+
+export const canvasSummarySchema = z.object({
+  overview: z.string(),
+  decisions: z.array(summaryItemSchema),
+  actionItems: z.array(summaryItemSchema),
+  openQuestions: z.array(summaryItemSchema),
+  references: z.array(summaryItemSchema),
+});
+
+export type CanvasSummarySchema = z.infer<typeof canvasSummarySchema>;
+
+export const canvasSummaryResponseSchema = z.object({
+  summary: canvasSummarySchema,
+  generatedAt: z.string(),
+  projectId: z.string(),
+});
+
+export type CanvasSummaryResponseSchema = z.infer<typeof canvasSummaryResponseSchema>;
+
 export const nodeAccessEntrySchema = z.object({
   id: z.string().uuid(),
   userId: z.string().uuid(),

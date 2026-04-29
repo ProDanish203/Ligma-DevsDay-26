@@ -93,11 +93,11 @@ export function NodePermissionsModal({
           {/* Current ACL list */}
           <div>
             <p className="mb-2 w-full wrap-break-word text-xs font-medium uppercase tracking-wide text-gray-500">
-              {accesses.length === 0 ? 'No explicit permissions — inherits project access' : 'Explicit access'}
+              {accesses.length === 0 ? 'No restrictions — open to all project members' : 'Explicit restrictions'}
             </p>
             {accesses.length === 0 ? (
               <p className="rounded-md border border-dashed border-gray-200 px-3 py-3 text-center text-sm text-gray-400 whitespace-normal wrap-break-word">
-                Anyone with project Editor+ access can edit this node.
+                All project members can view and edit this node.
               </p>
             ) : (
               <div className="space-y-1.5">
@@ -141,13 +141,13 @@ export function NodePermissionsModal({
             <>
               <Separator />
               <div>
-                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">Grant access</p>
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">Restrict access</p>
                 {loadingMembers ? (
                   <div className="flex items-center gap-2 text-sm text-gray-400">
                     <Loader2 className="size-4 animate-spin" /> Loading members…
                   </div>
                 ) : selectableMembers.length === 0 ? (
-                  <p className="text-sm text-gray-400">All project members already have explicit node access.</p>
+                  <p className="text-sm text-gray-400">All project members already have explicit restrictions set.</p>
                 ) : (
                   <div className="flex flex-wrap gap-2 md:flex-nowrap">
                     <Select value={selectedUserId} onValueChange={setSelectedUserId}>

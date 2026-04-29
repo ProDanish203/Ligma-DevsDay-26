@@ -36,7 +36,11 @@ import { CursorOverlay } from './cursor-overlay';
 import { CanvasToolbar, type ToolMode } from './canvas-toolbar';
 import { LogPanel } from './log-panel';
 import { NodePermissionsModal } from './node-permissions-modal';
+import { CanvasSummaryModal } from './canvas-summary-modal';
 import { Loader2, Wifi, WifiOff, AlertTriangle } from 'lucide-react';
+import { exportCanvasSummary } from '@/API/canvas.api';
+import { toast } from 'sonner';
+import type { CanvasSummarySchema } from '@/schema/canvas.schema';
 
 const nodeTypes = { sticky: StickyNode, shape: ShapeNode, draw: DrawNode, text: TextNode };
 
@@ -203,6 +207,10 @@ function CanvasInner({
   const [logPanelOpen, setLogPanelOpen] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [permissionsNodeId, setPermissionsNodeId] = useState<string | null>(null);
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryData, setSummaryData] = useState<CanvasSummarySchema | null>(null);
+  const [summaryGeneratedAt, setSummaryGeneratedAt] = useState<string | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [screenDrawPoints, setScreenDrawPoints] = useState<number[]>([]);
   const drawOverlayRef = useRef<HTMLDivElement>(null);
@@ -540,6 +548,20 @@ function CanvasInner({
     [toolMode, isDrawing, screenDrawPoints, createNode, screenToFlowPosition],
   );
 
+  const handleOpenSummary = useCallback(async () => {
+    setSummaryOpen(true);
+    setSummaryLoading(true);
+    const result = await exportCanvasSummary(projectId);
+    setSummaryLoading(false);
+    if (result.success && typeof result.response === 'object') {
+      setSummaryData(result.response.summary);
+      setSummaryGeneratedAt(result.response.generatedAt);
+    } else {
+      toast.error(typeof result.response === 'string' ? result.response : 'Failed to generate summary');
+      setSummaryOpen(false);
+    }
+  }, [projectId]);
+
   const cursorClass = toolMode !== 'select' ? 'canvas-crosshair' : '';
 
   const selectedNodeCreatedById = selectedNodeId ? nodeCreatorMap[selectedNodeId] ?? '' : '';
@@ -593,6 +615,8 @@ function CanvasInner({
         selectedNodeId={selectedNodeId}
         canManageSelectedNode={canManageSelected}
         onOpenPermissions={() => setPermissionsNodeId(selectedNodeId)}
+        onOpenSummary={handleOpenSummary}
+        summaryLoading={summaryLoading}
       />
 
       <LogPanel
@@ -611,6 +635,14 @@ function CanvasInner({
         onGrant={grantNodeAccess}
         onRevoke={revokeNodeAccess}
         onClose={() => setPermissionsNodeId(null)}
+      />
+
+      <CanvasSummaryModal
+        open={summaryOpen}
+        loading={summaryLoading}
+        summary={summaryData}
+        generatedAt={summaryGeneratedAt}
+        onClose={() => setSummaryOpen(false)}
       />
 
       {toolMode === 'draw' && (
