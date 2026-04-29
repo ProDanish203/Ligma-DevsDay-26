@@ -1,8 +1,6 @@
-Here's the cleaned up README:
-
----
-
 # LIGMA
+
+[LOOM VIDEO LINK](https://www.loom.com/share/7d8cc5ad89504f578594fc411e3e2a1a)
 
 ## Table of Contents
 
