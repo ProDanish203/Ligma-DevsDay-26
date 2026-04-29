@@ -1,14 +1,18 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { UserAccessLevel, UserAccessType } from '@db';
+import { User, UserAccessLevel, UserAccessType } from '@db';
 import { PrismaService } from '../common/services/prisma.service';
 import { throwError } from '../common/utils/helpers';
 import { ApiResponse } from '../common/types/type';
 import { canvasNodeSelect, CanvasNodeSelect, canvasEdgeSelect, CanvasEdgeSelect, nodeAccessSelect, NodeAccessSelect } from './queries';
 import { AddNodeDto, DeleteNodeDto, UpdateNodeDto, AddEdgeDto, DeleteEdgeDto, GrantNodeAccessDto, RevokeNodeAccessDto } from './dto/canvas.dto';
+import { AiService } from '../ai/ai.service';
+import { NodeIntent } from '@db';
+import { TaskBoardService } from 'src/task-board/task-board.service';
+import { CanvasUser } from './types';
 
 @Injectable()
 export class CanvasService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly aiService: AiService, private readonly taskBoardService: TaskBoardService) { }
 
   // ── Project access helper ────────────────────────────────────────────
 
@@ -236,11 +240,44 @@ export class CanvasService {
     }
   }
 
-  async updateNode(userId: string, dto: UpdateNodeDto): Promise<ApiResponse<CanvasNodeSelect>> {
+  private async classificationStickyNode(
+    nodeId: string,
+    dto: UpdateNodeDto,
+    user: CanvasUser,
+  ): Promise<{ taskCreated: boolean; updatedNode: CanvasNodeSelect }> {
+    if (!dto.data?.label) {
+      const node = await this.prisma.canvasNode.findFirstOrThrow({ where: { id: nodeId }, select: canvasNodeSelect });
+      return { taskCreated: false, updatedNode: node };
+    }
+
+    const { intent, title, description } = await this.aiService.classifyIntent(dto.data.label);
+
+    const updatedNode = await this.prisma.canvasNode.update({
+      where: { id: nodeId },
+      data: { intent },
+      select: canvasNodeSelect,
+    });
+
+    if (intent === NodeIntent.ACTION_ITEM) {
+      await this.taskBoardService.createTask(user as unknown as User, dto.projectId, {
+        title: title ?? dto.data.label,
+        description: description ?? undefined,
+        canvasNodeId: nodeId,
+      });
+      return { taskCreated: true, updatedNode };
+    }
+    return { taskCreated: false, updatedNode };
+  }
+
+  async updateNode(
+    user: CanvasUser,
+    dto: UpdateNodeDto,
+    classificationSignal?: { started: boolean; onDone?: (result: { taskCreated: boolean; updatedNode: CanvasNodeSelect }) => void },
+  ): Promise<ApiResponse<CanvasNodeSelect>> {
     try {
       const existing = await this.prisma.canvasNode.findFirst({
         where: { id: dto.nodeId, projectId: dto.projectId, deletedAt: null },
-        select: { id: true },
+        select: { id: true, type: true, data: true },
       });
       if (!existing) throw throwError('Node not found', HttpStatus.NOT_FOUND);
 
@@ -249,13 +286,22 @@ export class CanvasService {
       if (dto.positionY !== undefined) updateData.positionY = dto.positionY;
       if (dto.width !== undefined) updateData.width = dto.width;
       if (dto.height !== undefined) updateData.height = dto.height;
-      if (dto.data !== undefined) updateData.data = dto.data;
+      if (dto.data !== undefined) updateData.data = { ...(existing.data as Record<string, unknown> ?? {}), ...dto.data };
 
       const node = await this.prisma.canvasNode.update({
         where: { id: dto.nodeId },
         data: updateData,
         select: canvasNodeSelect,
       });
+
+      const labelChanged = existing.type === 'sticky' && dto.data?.label && (existing as any).data?.label !== dto.data.label;
+      if (labelChanged && classificationSignal) {
+        classificationSignal.started = true;
+        this.classificationStickyNode(node.id, dto, user)
+          .then((result) => classificationSignal.onDone?.(result))
+          .catch(() => classificationSignal.onDone?.({ taskCreated: false, updatedNode: node }));
+      }
+
       return { message: 'Node updated', success: true, data: node };
     } catch (error: any) {
       if (error?.status) throw error;

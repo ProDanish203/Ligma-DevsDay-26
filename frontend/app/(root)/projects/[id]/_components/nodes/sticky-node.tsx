@@ -2,7 +2,8 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { NodeResizer, Handle, Position, type NodeProps } from '@xyflow/react';
-import { Lock } from 'lucide-react';
+import { Lock, Loader2 } from 'lucide-react';
+import { NodeIntent } from '@/lib/enums';
 
 const COLOR_OPTIONS = [
   { value: '#FEF08A', label: 'Yellow' },
@@ -20,10 +21,19 @@ const handleStyle = {
   zIndex: 20,
 };
 
+const INTENT_TAG: Record<string, { label: string; cls: string }> = {
+  [NodeIntent.ACTION_ITEM]:  { label: 'Action Item',   cls: 'bg-rose-500 text-white' },
+  [NodeIntent.DECISION]:     { label: 'Decision',      cls: 'bg-blue-500 text-white' },
+  [NodeIntent.OPEN_QUESTION]:{ label: 'Open Question', cls: 'bg-amber-400 text-gray-900' },
+  [NodeIntent.REFERENCE]:    { label: 'Reference',     cls: 'bg-violet-500 text-white' },
+};
+
 export interface StickyNodeData {
   label: string;
   color: string;
   canEdit?: boolean;
+  aiClassifying?: boolean;
+  intent?: NodeIntent | string;
   onUpdate?: (nodeId: string, data: Partial<{ label: string; color: string }>) => void;
   onManagePermissions?: (nodeId: string) => void;
   onResize?: (nodeId: string, params: { x: number; y: number; width: number; height: number }) => void;
@@ -33,6 +43,8 @@ export interface StickyNodeData {
 export function StickyNode({ id, data, selected }: NodeProps) {
   const d = data as StickyNodeData;
   const canEdit = d.canEdit !== false; // default true if not specified
+  const aiClassifying = d.aiClassifying === true;
+  const intentTag = d.intent && d.intent !== NodeIntent.UNCLASSIFIED ? INTENT_TAG[d.intent] : null;
   const [editing, setEditing] = useState(false);
   const textRef = useRef<HTMLTextAreaElement>(null);
 
@@ -72,9 +84,17 @@ export function StickyNode({ id, data, selected }: NodeProps) {
       <Handle type="source" position={Position.Right} id="right" style={handleStyle} />
 
       {/* Lock indicator for read-only nodes */}
-      {!canEdit && (
+      {!canEdit && !aiClassifying && (
         <div className="absolute right-1.5 top-1.5 z-10 rounded-full bg-black/20 p-0.5">
           <Lock className="size-3 text-white/80" />
+        </div>
+      )}
+
+      {/* AI classification in progress */}
+      {aiClassifying && (
+        <div className="absolute right-1.5 top-1.5 z-10 flex items-center gap-1 rounded-full bg-black/30 px-1.5 py-0.5">
+          <Loader2 className="size-3 animate-spin text-white" />
+          <span className="text-[9px] font-medium text-white">AI</span>
         </div>
       )}
 
@@ -114,6 +134,15 @@ export function StickyNode({ id, data, selected }: NodeProps) {
           </p>
         )}
       </div>
+
+      {/* Intent tag */}
+      {intentTag && (
+        <div className="px-2 pb-2">
+          <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold leading-tight ${intentTag.cls}`}>
+            {intentTag.label}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { toast } from 'sonner';
 import { TOKEN_KEY } from '@/lib/constants';
 import { UserAccessLevel } from '@/lib/enums';
 import type { CanvasNodeSchema, CanvasEdgeSchema, NodeAccessEntrySchema } from '@/schema/canvas.schema';
@@ -33,6 +34,7 @@ export function useCanvasSocket({ projectId, user }: { projectId: string; user: 
   const [nodeAccesses, setNodeAccesses] = useState<Record<string, NodeAccessEntrySchema[]>>({});
   const [myProjectAccess, setMyProjectAccess] = useState<MyProjectAccess>(null);
   const [recentLogs, setRecentLogs] = useState<LogSchema[]>([]);
+  const [aiClassifyingNodeIds, setAiClassifyingNodeIds] = useState<Set<string>>(new Set());
 
   const socketRef = useRef<Socket | null>(null);
   const lastEmitRef = useRef<number>(0);
@@ -191,6 +193,22 @@ export function useCanvasSocket({ projectId, user }: { projectId: string; user: 
       setRecentLogs((prev) => sortLogsNewestFirst([log, ...prev]).slice(0, 200));
     });
 
+    socket.on('canvas:ai-classifying', ({ nodeId }: { nodeId: string }) => {
+      if (!alive) return;
+      setAiClassifyingNodeIds((prev) => new Set(prev).add(nodeId));
+    });
+
+    socket.on('canvas:ai-task-created', ({ nodeId }: { nodeId: string }) => {
+      if (!alive) return;
+      setAiClassifyingNodeIds((prev) => { const s = new Set(prev); s.delete(nodeId); return s; });
+      toast.success('Task created from sticky note');
+    });
+
+    socket.on('canvas:ai-done', ({ nodeId }: { nodeId: string }) => {
+      if (!alive) return;
+      setAiClassifyingNodeIds((prev) => { const s = new Set(prev); s.delete(nodeId); return s; });
+    });
+
     return () => {
       alive = false;
       socket.emit('canvas:leave', { projectId });
@@ -315,7 +333,7 @@ export function useCanvasSocket({ projectId, user }: { projectId: string; user: 
   return {
     nodes, edges, remoteUsers, cursors,
     status, initialLoadDone,
-    nodeAccesses, myProjectAccess, recentLogs,
+    nodeAccesses, myProjectAccess, recentLogs, aiClassifyingNodeIds,
     emitCursorMove, createNode, updateNode, deleteNode, createEdge, deleteEdge,
     grantNodeAccess, revokeNodeAccess, canViewNode, canEditNode, canManageNodeAccess,
   };
