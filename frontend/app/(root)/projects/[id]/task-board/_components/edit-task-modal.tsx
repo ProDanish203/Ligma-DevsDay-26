@@ -35,7 +35,7 @@ export function EditTaskModal({ open, onOpenChange, task, projectId, onUpdated }
     reset,
     formState: { errors, isSubmitting },
   } = useForm<UpdateTaskSchema>({
-    resolver: zodResolver(updateTaskSchema),
+    resolver: zodResolver(updateTaskSchema as any),
     defaultValues: { title: '', description: '' },
   });
 
