@@ -42,6 +42,7 @@
     Socket.IO              PostgreSQL
    (namespace /canvas)
 ```
+![alt text](image.png)
 
 **Tech stack:**
 - **NestJS** — backend framework
