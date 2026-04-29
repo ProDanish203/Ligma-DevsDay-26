@@ -139,6 +139,7 @@ interface CanvasInnerProps {
   cursors: Map<string, { x: number; y: number }>;
   status: CanvasConnectionStatus;
   aiClassifyingNodeIds: Set<string>;
+  focusNodeId?: string;
   emitCursorMove: (x: number, y: number) => void;
   createNode: (payload: {
     type: string;
@@ -181,6 +182,7 @@ function CanvasInner({
   cursors,
   status,
   aiClassifyingNodeIds,
+  focusNodeId,
   emitCursorMove,
   createNode,
   updateNode,
@@ -264,16 +266,24 @@ function CanvasInner({
   const isNodesSeeded = useRef(true);
   const isEdgesSeeded = useRef(true);
 
-  // Fit view once after mount
+  // Fit view once after mount — zoom to focused node if specified
   const hasFittedRef = useRef(false);
   useEffect(() => {
-    if (!hasFittedRef.current && initialFlowNodes.length > 0) {
-      const timer = setTimeout(() => {
+    if (hasFittedRef.current) return;
+    if (initialFlowNodes.length === 0) return;
+
+    const timer = setTimeout(() => {
+      if (focusNodeId) {
+        // Zoom in and center on the specific node
+        fitView({ nodes: [{ id: focusNodeId }], padding: 0.5, duration: 500, maxZoom: 1.5 });
+        // Select the focused node so it's visually highlighted
+        setSelectedNodeId(focusNodeId);
+      } else {
         fitView({ padding: 0.2, duration: 300 });
-        hasFittedRef.current = true;
-      }, 50);
-      return () => clearTimeout(timer);
-    }
+      }
+      hasFittedRef.current = true;
+    }, 100);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -641,7 +651,7 @@ function CanvasInner({
 /* ------------------------------------------------------------------ */
 /* Outer wrapper — calls socket hook and gates CanvasInner on data     */
 /* ------------------------------------------------------------------ */
-export function CanvasView({ projectId, user }: { projectId: string; user: RemoteUser | null }) {
+export function CanvasView({ projectId, user, focusNodeId }: { projectId: string; user: RemoteUser | null; focusNodeId?: string }) {
   const {
     nodes,
     edges,
@@ -684,6 +694,7 @@ export function CanvasView({ projectId, user }: { projectId: string; user: Remot
           cursors={cursors}
           status={status}
           aiClassifyingNodeIds={aiClassifyingNodeIds}
+          focusNodeId={focusNodeId}
           emitCursorMove={emitCursorMove}
           createNode={createNode}
           updateNode={updateNode}
