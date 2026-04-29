@@ -51,15 +51,6 @@ export default function SignupPage() {
         <p className="mt-1 text-sm text-gray-400">Join Ligma today — it&apos;s free</p>
       </div>
 
-      {/* Google OAuth */}
-      <GoogleButton className="mb-5" />
-
-      {/* Divider */}
-      <div className="mb-5 flex items-center gap-3">
-        <div className="h-px flex-1 bg-gray-100" />
-        <span className="text-xs text-gray-400">or continue with email</span>
-        <div className="h-px flex-1 bg-gray-100" />
-      </div>
 
       {/* Form */}
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">

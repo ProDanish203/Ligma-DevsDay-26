@@ -12,7 +12,6 @@ import { login } from '@/API/auth.api';
 import { useAuthStore } from '@/store/auth.store';
 import { TOKEN_KEY } from '@/lib/constants';
 import { FormField } from '@/components/auth/form-field';
-import { GoogleButton } from '@/components/auth/google-button';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -51,15 +50,6 @@ export default function LoginPage() {
         <p className="mt-1 text-sm text-gray-400">Sign in to continue to Ligma</p>
       </div>
 
-      {/* Google OAuth */}
-      <GoogleButton className="mb-5" />
-
-      {/* Divider */}
-      <div className="mb-5 flex items-center gap-3">
-        <div className="h-px flex-1 bg-gray-100" />
-        <span className="text-xs text-gray-400">or continue with email</span>
-        <div className="h-px flex-1 bg-gray-100" />
-      </div>
 
       {/* Form */}
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
@@ -130,6 +120,6 @@ export default function LoginPage() {
           Create one
         </Link>
       </p>
-    </div>
+    </div >
   );
 }
