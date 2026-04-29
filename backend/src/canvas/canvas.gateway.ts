@@ -9,6 +9,7 @@ import {
 } from '@nestjs/websockets';
 import { Logger, OnModuleDestroy } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
+import * as Y from 'yjs';
 import { JwtService } from '@nestjs/jwt';
 import { createAdapter } from '@socket.io/redis-adapter';
 import Redis from 'ioredis';
@@ -224,6 +225,16 @@ export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect, 
       user,
       users: Array.from(roomUsers.values()).map((u) => u.user),
     });
+
+    // Send Yjs catchup state so this client merges any prior edits
+    try {
+      const yjsState = await this.redisService.getClient().getBuffer(`canvas:yjs:${projectId}`);
+      if (yjsState && yjsState.length > 0) {
+        client.emit('canvas:yjs-state', { update: yjsState });
+      }
+    } catch (err) {
+      this.logger.warn(`Failed to load Yjs state for ${projectId}: ${(err as Error).message}`);
+    }
   }
 
   @SubscribeMessage('canvas:leave')
@@ -457,6 +468,42 @@ export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect, 
     } catch (error: any) {
       client.emit('canvas:error', { message: error?.message || 'Failed to grant node access' });
     }
+  }
+
+  @SubscribeMessage('canvas:yjs-update')
+  async handleYjsUpdate(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() dto: { projectId: string; update: Buffer | Uint8Array | number[] },
+  ) {
+    const user: CanvasUser = client.data.user;
+    if (!user) return;
+
+    const { projectId } = dto;
+
+    let updateBuf: Buffer;
+    if (Buffer.isBuffer(dto.update)) {
+      updateBuf = dto.update;
+    } else if (dto.update instanceof Uint8Array) {
+      updateBuf = Buffer.from(dto.update);
+    } else {
+      updateBuf = Buffer.from(dto.update as number[]);
+    }
+
+    const redis = this.redisService.getClient();
+    const redisKey = `canvas:yjs:${projectId}`;
+    try {
+      const existing = await redis.getBuffer(redisKey);
+      const merged =
+        existing && existing.length > 0
+          ? Buffer.from(Y.mergeUpdates([new Uint8Array(existing), new Uint8Array(updateBuf)]))
+          : updateBuf;
+      await redis.set(redisKey, merged);
+    } catch (err) {
+      this.logger.warn(`Yjs Redis persist failed for ${projectId}: ${(err as Error).message}`);
+    }
+
+    // Relay raw update to every other client in the room (no parsing)
+    client.to(projectId).emit('canvas:yjs-update', { update: updateBuf });
   }
 
   @SubscribeMessage('canvas:node-access-revoke')

@@ -1,4 +1,5 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { NodeIntent } from '@db';
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -13,19 +14,36 @@ export class AiService {
     private readonly model: LanguageModel;
 
     constructor(private readonly configService: ConfigService) {
-        const rawApiKey = this.configService.get<string>('GEMINI_API_KEY');
-        if (!rawApiKey) {
-            throw new Error('GEMINI_API_KEY is not set in the environment variables');
-        }
-        // Remove any invisible/non-ASCII characters (like zero-width space \u2060) 
-        // that could cause "TypeError: Cannot convert argument to a ByteString" in Undici headers.
-        const GEMINI_API_KEY = rawApiKey.replace(/[^\x20-\x7E]/g, '');
+        const provider = this.configService.get<string>('AI_PROVIDER');
 
-        const geminiModels = createGoogleGenerativeAI({
-            apiKey: GEMINI_API_KEY,
-        })
-        this.model = geminiModels('gemini-2.0-flash-lite')
+        if (provider === 'github') {
+            const GITHUB_TOKEN = this.configService.get<string>('GITHUB_TOKEN');
+            if (!GITHUB_TOKEN) {
+                throw new Error('GITHUB_TOKEN is not set in the environment variables');
+            }
+
+            const githubModels = createOpenAICompatible({
+                name: 'github-models',
+                baseURL: 'https://models.github.ai/inference',
+                apiKey: GITHUB_TOKEN,
+                supportsStructuredOutputs: true
+            });
+
+            this.model = githubModels('openai/gpt-4o-mini');
+        }
+
+        if (provider === 'gemini') {
+            const GEMINI_API_KEY = this.configService.get<string>('GEMINI_API_KEY');
+            if (!GEMINI_API_KEY) {
+                throw new Error('GEMINI_API_KEY is not set in the environment variables');
+            }
+            const geminiModels = createGoogleGenerativeAI({
+                apiKey: GEMINI_API_KEY,
+            })
+            this.model = geminiModels('gemini-2.0-flash-lite')
+        }
     }
+
 
     async generateStructuredData<T>(
         prompt: string,

@@ -25,6 +25,7 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import { useCanvasSocket, type RemoteUser, type CanvasConnectionStatus } from '@/hooks/use-canvas-socket';
+import { CanvasYjsContext } from './canvas-yjs-context';
 import type { CanvasNodeSchema, CanvasEdgeSchema } from '@/schema/canvas.schema';
 
 import { StickyNode } from './nodes/sticky-node';
@@ -662,6 +663,7 @@ export function CanvasView({ projectId, user, focusNodeId }: { projectId: string
     nodeAccesses,
     recentLogs,
     aiClassifyingNodeIds,
+    yDoc,
     emitCursorMove,
     createNode,
     updateNode,
@@ -684,6 +686,7 @@ export function CanvasView({ projectId, user, focusNodeId }: { projectId: string
   }
 
   return (
+    <CanvasYjsContext.Provider value={yDoc}>
     <div className="h-full w-full overflow-hidden">
       <ReactFlowProvider>
         <CanvasInner
@@ -711,5 +714,6 @@ export function CanvasView({ projectId, user, focusNodeId }: { projectId: string
         />
       </ReactFlowProvider>
     </div>
+    </CanvasYjsContext.Provider>
   );
 }
