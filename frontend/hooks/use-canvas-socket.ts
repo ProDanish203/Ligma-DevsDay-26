@@ -120,14 +120,21 @@ export function useCanvasSocket({ projectId, user }: { projectId: string; user: 
       users,
       nodeAccesses: na,
       myProjectAccess: mpa,
+      yjsUpdate,
     }: {
       nodes: CanvasNodeSchema[];
       edges: CanvasEdgeSchema[];
       users: RemoteUser[];
       nodeAccesses?: Record<string, NodeAccessEntrySchema[]>;
       myProjectAccess?: MyProjectAccess;
+      yjsUpdate?: ArrayBuffer | Uint8Array | null;
     }) => {
       if (!alive) return;
+      // Apply Yjs state synchronously before initialLoadDone flips so StickyNodes
+      // see the correct Y.Text content on first render and skip the d.label seed.
+      if (yjsUpdate) {
+        Y.applyUpdate(ydoc, new Uint8Array(yjsUpdate instanceof ArrayBuffer ? yjsUpdate : yjsUpdate), 'remote');
+      }
       const currentUser = userRef.current;
       setNodes(n);
       setEdges(e);
@@ -216,11 +223,6 @@ export function useCanvasSocket({ projectId, user }: { projectId: string; user: 
     });
 
     // ── Yjs real-time text sync ───────────────────────────────────────
-
-    socket.on('canvas:yjs-state', ({ update }: { update: ArrayBuffer | Uint8Array }) => {
-      if (!alive) return;
-      Y.applyUpdate(ydoc, new Uint8Array(update instanceof ArrayBuffer ? update : update), 'remote');
-    });
 
     socket.on('canvas:yjs-update', ({ update }: { update: ArrayBuffer | Uint8Array }) => {
       if (!alive) return;

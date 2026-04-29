@@ -194,6 +194,16 @@ export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect, 
     const roomUsers = this.rooms.get(projectId)!;
     roomUsers.set(client.id, { user, cursor: { x: 0, y: 0 } });
 
+    // Fetch Yjs state alongside canvas data so it arrives atomically with canvas:state.
+    // The client applies it to Y.Doc before initialLoadDone flips, preventing double-init.
+    let yjsUpdate: Buffer | null = null;
+    try {
+      const buf = await this.redisService.getClient().getBuffer(`canvas:yjs:${projectId}`);
+      if (buf && buf.length > 0) yjsUpdate = buf;
+    } catch (err) {
+      this.logger.warn(`Failed to load Yjs state for ${projectId}: ${(err as Error).message}`);
+    }
+
     try {
       const [nodesResult, edgesResult, nodeAccesses] = await Promise.all([
         this.canvasService.getCanvasNodes(projectId),
@@ -209,6 +219,7 @@ export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect, 
         users: Array.from(roomUsers.values()).map((u) => u.user),
         nodeAccesses,
         myProjectAccess,
+        yjsUpdate,
       });
     } catch (error) {
       this.logger.error(`Failed to load canvas state for project ${projectId}`, error);
@@ -218,6 +229,7 @@ export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect, 
         users: Array.from(roomUsers.values()).map((u) => u.user),
         nodeAccesses: {},
         myProjectAccess,
+        yjsUpdate,
       });
     }
 
@@ -225,16 +237,6 @@ export class CanvasGateway implements OnGatewayConnection, OnGatewayDisconnect, 
       user,
       users: Array.from(roomUsers.values()).map((u) => u.user),
     });
-
-    // Send Yjs catchup state so this client merges any prior edits
-    try {
-      const yjsState = await this.redisService.getClient().getBuffer(`canvas:yjs:${projectId}`);
-      if (yjsState && yjsState.length > 0) {
-        client.emit('canvas:yjs-state', { update: yjsState });
-      }
-    } catch (err) {
-      this.logger.warn(`Failed to load Yjs state for ${projectId}: ${(err as Error).message}`);
-    }
   }
 
   @SubscribeMessage('canvas:leave')
