@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Pencil, Trash2, FileText } from 'lucide-react';
+import Link from 'next/link';
+import { Pencil, Trash2, FileText, Focus } from 'lucide-react';
 import Avatar from 'boring-avatars';
 import { toast } from 'sonner';
 
@@ -55,6 +56,21 @@ export function TaskCard({ task, projectId, onEdit, onDeleted }: TaskCardProps) 
         </div>
 
         <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+          <Link
+            href={`/projects/${projectId}?focusNode=${task.canvasNodeId}`}
+            title="Focus on canvas"
+          >
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              className="size-7 text-gray-400 hover:text-brand-primary"
+              tabIndex={-1}
+            >
+              <Focus className="size-3.5" />
+            </Button>
+          </Link>
+
           <Button
             type="button"
             variant="ghost"
